@@ -15,7 +15,7 @@ const state = {
   communityMode: "discussion", selectedInboxUser: "", inboxMessages: [],
   replyTo: null, queuedFiles: [], mediaCache: {}, toastTimer: null,
   recording: null, recordingStream: null, theme: localStorage.getItem("nx-theme") || "dark",
-  mfaFactor: null, mfaQr: "", mfaSecret: "", mfaPendingFactor: null, mfaChallengeId: null, mfaBusy: false, globalSearch: ""
+  mfaFactor: null, mfaQr: "", mfaSecret: "", mfaPendingFactor: null, mfaChallengeId: null, mfaBusy: false, mfaFactors: [], globalSearch: ""
 };
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
@@ -173,7 +173,8 @@ async function authChanged(session) {
     if(!assuranceError&&assurance?.nextLevel==="aal2"&&assurance.currentLevel!=="aal2"){
       const {data:factors,error:factorsError}=await supabase.auth.mfa.listFactors();
       if(!factorsError){
-        const verified=(factors?.totp||[]).find(f=>f.status==="verified");
+        state.mfaFactors=(factors?.totp||[]).filter(f=>f.status==="verified");
+        const verified=state.mfaFactors[0];
         if(verified){
           const {data:challenge,error:challengeError}=await supabase.auth.mfa.challenge({factorId:verified.id});
           if(challengeError)throw challengeError;
@@ -187,7 +188,15 @@ async function authChanged(session) {
   await loadData();startRuntime();
 }
 async function renderMfaChallenge(){
-  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div class="eyebrow" style="margin-top:54px">ADDITIONAL SECURITY CHECK</div><h1>Verify your<br><em>authenticator.</em></h1><p>Two-factor authentication is enabled for this account. Enter the current six-digit code from your authenticator app to continue.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> TOTP verification required</span><span class="chip">Private session</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECOND FACTOR</span></div></div><div style="height:26px"></div><h2>Enter verification code</h2><p>Open your authenticator app and enter the current code. Do not share this code with anyone.</p><form id="mfaLoginForm" class="auth-form"><div class="field"><label>6-DIGIT AUTHENTICATOR CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="000000"></div><button class="btn-primary" type="submit">Verify and continue</button></form><div class="auth-links"><span>Lost access to your authenticator?</span><button class="text-link" id="mfaRecoveryHelp">Account recovery</button></div><div class="hint" style="margin-top:14px">Account recovery requires identity verification by the owner. Never send an OTP or password in a group chat.</div></div></section></div>';
+  const factorOptions=state.mfaFactors.map(f=>'<option value="'+esc(f.id)+'" '+(f.id===state.mfaPendingFactor?"selected":"")+'>'+esc(f.friendly_name||"Authenticator device")+'</option>').join("");
+  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div class="eyebrow" style="margin-top:54px">ADDITIONAL SECURITY CHECK</div><h1>Verify your<br><em>authenticator.</em></h1><p>Two-factor authentication is enabled for this account. Enter the current six-digit code from your authenticator app to continue.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> TOTP verification required</span><span class="chip">Private session</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECOND FACTOR</span></div></div><div style="height:26px"></div><h2>Enter verification code</h2><p>Open your authenticator app and enter the current code. Do not share this code with anyone.</p>'+(state.mfaFactors.length>1?'<div class="field" style="margin-bottom:14px"><label>AUTHENTICATOR DEVICE</label><select id="mfaFactorSelect">'+factorOptions+'</select></div>':'')+'<form id="mfaLoginForm" class="auth-form"><div class="field"><label>6-DIGIT AUTHENTICATOR CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="000000"></div><button class="btn-primary" type="submit">Verify and continue</button></form><div class="auth-links"><span>Lost access to your authenticator?</span><button class="text-link" id="mfaRecoveryHelp">Account recovery</button></div><div class="hint" style="margin-top:14px">Register a backup authenticator on a separate device in Settings. Supabase does not issue recovery codes. Never send an OTP or password in a group chat.</div></div></section></div>';
+  $("#mfaFactorSelect")?.addEventListener("change",async e=>{
+    const selected=e.target.value;
+    try{
+      const {data,error}=await supabase.auth.mfa.challenge({factorId:selected});if(error)throw error;
+      state.mfaPendingFactor=selected;state.mfaChallengeId=data.id;toast("A new challenge was prepared for that authenticator.");
+    }catch(error){showError(error)}
+  });
   $("#mfaLoginForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
     if(state.mfaBusy)return;
@@ -760,7 +769,8 @@ async function installPwa() {
 async function startMfa() {
   const area=$("#mfaArea");if(!area)return;
   try{
-    const {data,error}=await supabase.auth.mfa.enroll({factorType:"totp",friendlyName:"Nexoventia Authenticator"});
+    const label=state.mfaFactors.length===0?"Nexoventia Primary":("Nexoventia Backup "+(state.mfaFactors.length));
+    const {data,error}=await supabase.auth.mfa.enroll({factorType:"totp",friendlyName:label});
     if(error)throw error;
     state.mfaFactor=data.id;state.mfaQr=data.totp.qr_code;state.mfaSecret=data.totp.secret;
     area.innerHTML='<div class="alert info">Scan this code in an authenticator app, then enter the six-digit code to verify.</div><img style="width:170px;height:170px;background:white;padding:8px;border-radius:12px;margin:12px 0" src="data:image/svg+xml;utf8,'+encodeURIComponent(data.totp.qr_code)+'" alt="Authenticator QR code"><div class="hint">Manual key: '+esc(data.totp.secret)+'</div><form id="mfaVerify" class="form-grid" style="margin-top:12px"><div class="field"><label>6-DIGIT CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Verify authenticator</button></div></form>';
@@ -768,7 +778,12 @@ async function startMfa() {
       e.preventDefault();const code=String(new FormData(e.currentTarget).get("code")||"");
       const {data:ch,error:chError}=await supabase.auth.mfa.challenge({factorId:state.mfaFactor});if(chError)throw chError;
       const {error:verifyError}=await supabase.auth.mfa.verify({factorId:state.mfaFactor,challengeId:ch.id,code});if(verifyError)throw verifyError;
-      toast("Authenticator verified and enrolled.");area.innerHTML='<span class="tag done">TOTP MFA ACTIVE</span>';
+      const {data:factors,error:factorError}=await supabase.auth.mfa.listFactors();
+      if(factorError)throw factorError;
+      state.mfaFactors=(factors?.totp||[]).filter(f=>f.status==="verified");
+      toast("Authenticator verified. Add a second device as a backup.");
+      area.innerHTML='<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">Recovery codes are not provided. Add a backup authenticator on a separate device and store its secret securely.</p><button class="btn-subtle btn-small" id="addBackupMfa">Add backup authenticator</button>';
+      $("#addBackupMfa")?.addEventListener("click",startMfa);
     });
   }catch(error){showError(error);area.innerHTML='<button class="btn-subtle btn-small" id="startMfa">Retry authenticator setup</button>';$("#startMfa")?.addEventListener("click",startMfa)}
 }
