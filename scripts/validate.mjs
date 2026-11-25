@@ -34,7 +34,7 @@ assert.deepEqual({min:days[11].min,max:days[11].max,flag:days[11].clarification}
 assert.deepEqual({min:days[30].min,max:days[30].max,withdrawal:days[30].withdrawal},{min:98,max:112,withdrawal:82},"Day 31 target and withdrawal are unchanged");
 
 assert.match(schema,/Project ref: dbsgvcfvlnhwecyfsxib/i);
-assert.match(schema,/REGION: ap-south-1/);
+assert.match(schema,/Region: ap-south-1/i);
 assert.match(schema,/public\.is_admin\(\)/);
 assert.match(schema,/auth\.jwt\(\)[\s\S]*app_metadata/);
 assert.match(schema,/private\.mfa_session_allowed\(\)/);
