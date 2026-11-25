@@ -12,7 +12,7 @@ const readme = read("README.md");
 const setup = read("SETUP.md");
 const migration = read("supabase/migrations/20261125105653_move_mfa_policy_helper_to_private_schema.sql");
 
-const days = [...schema.matchAll(/^\((\d+),'(2026-12-\d{2})',(null|\d+),(null|\d+),(\d+),(true|false),(true|false),'([^']*)'\),?$/gm)]
+const days = [...schema.matchAll(/^\((\d+),'(2026-12-\d{2})',(null|\d+),(null|\d+),(\d+),(true|false),(true|false),'([^']*)'\)[;,]?$/gm)]
   .map(m => ({
     day:Number(m[1]), date:m[2],
     min:m[3]==="null"?null:Number(m[3]), max:m[4]==="null"?null:Number(m[4]),

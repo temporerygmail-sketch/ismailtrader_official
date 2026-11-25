@@ -47,7 +47,7 @@ button,.btn{border:1px solid var(--line2);background:linear-gradient(135deg,rgba
 .snapshot-count small{font:10px 'DM Mono',monospace;letter-spacing:.13em;color:var(--muted)}
 .snapshot-results{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
 .snapshot-results span{padding:6px 8px;border-radius:9px;background:rgba(255,255,255,.035);font:10px 'DM Mono',monospace}
-.snapshot-win{color:var(--green)}.snapshot-loss{color:var(--red)}.snapshot-refund{color:var(--cyan)}.snapshot-pending{color:var(--amber)}
+.snapshot-win{color:var(--lime)}.snapshot-loss{color:var(--red)}.snapshot-refund{color:var(--cyan)}.snapshot-pending{color:var(--amber)}
 .snapshot-foot{display:flex;justify-content:space-between;gap:12px;padding-top:8px;margin-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
 .snapshot-foot strong{color:var(--text);font:600 11px 'DM Mono',monospace}
 .dashboard-snapshots{align-items:stretch}

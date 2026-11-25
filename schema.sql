@@ -94,7 +94,7 @@ $function$;
 (28,'2026-12-28',null,null,0,true,false,'Rest day'),
 (29,'2026-12-29',73,85,0,false,false,''),
 (30,'2026-12-30',85,98,0,false,false,''),
-(31,'2026-12-31',98,112,82,false,false,'');
+(31,'2026-12-31',98,112,82,false,false,'');;
 
 -- Totals: 31 dates; 28 active days; 3 rest days; 9 planned withdrawals = $226.
 -- Day 12 is intentionally not normalized to another target range.
