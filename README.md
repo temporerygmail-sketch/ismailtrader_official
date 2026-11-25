@@ -1,44 +1,53 @@
 # NEXOVENTIA — Trading Operations Hub
 
-Responsive, installable Progressive Web App for the shared December 2026 challenge plan, signal history, withdrawal evidence, admin-controlled day closes, community and analytics.
+NEXOVENTIA is an installable, responsive Progressive Web App for a shared December 2026 challenge ledger, educational signal records, withdrawal evidence, community and admin operations.
 
 ## Live app
 
 https://temporerygmail-sketch.github.io/ismailtrader_official/
 
-## Main features
+## What is included
 
-- Supabase email/password signup and login, email confirmation support, password reset, Google OAuth entry point, and TOTP authenticator MFA with multiple verified devices.
-- Shared December 1–31, 2026 challenge calendar: 28 active days; rest days on December 14, 21 and 28.
-- Nine planned withdrawals totalling $226. Day 12 remains $25–$43 and is flagged for clarification.
-- Admin-only official/demo signal publishing and post-expiry Win/Loss/Refund outcome records with before/after screenshot evidence.
-- Shared read-only signal archives, day-close history and withdrawal receipts.
-- Admin-only closing-balance input. If the preceding close is missing, P/L stays unknown rather than being guessed.
-- Dashboard, challenge calendar, signal notes, demo board, transactions, analytics, notifications, community, member-to-admin inbox and settings.
-- Four shared rooms: Quetex Updates, Quetex Official Signals, Market Checking · Demo Signals, and Discussion Group.
-- Members may post only in Discussion Group. Updates and both signal feeds are admin-only.
-- Direct messages are restricted to member ↔ admin; member-to-member DMs are blocked by database policies.
-- Admin-only online-member view, individual member inbox, shared next-session countdown and audit history.
-- Private media storage, Supabase RLS, Realtime updates and PWA installation.
+- December 1–31, 2026 challenge plan, with 28 active days and rest days on December 14, 21 and 28.
+- Original target ranges and nine planned withdrawals totalling $226. Day 12 remains $25–$43 and requires owner clarification.
+- Actual daily close records entered by the owner; actual balance never gets silently replaced by the planned target.
+- Shared official and demo signal archives with pair, timeframe, direction, demo amount, issue/expiry time, before screenshot, Win/Loss/Refund result and after screenshot.
+- Dashboard with daily, weekly and all-time signal snapshots, registered account count, withdrawal totals, recorded P/L, profit/loss days and actual balance history.
+- Read-only shared challenge, signal notes and withdrawal receipt pages for members.
+- Four community destinations: Quetex Updates, Quetex Official Signals, Market Checking · Demo Signals and Discussion Group.
+- Members can post text/media only in Discussion Group. Updates and both signal feeds are admin-published.
+- Private messages are restricted to member ↔ admin; member-to-member DMs are blocked by database policies.
+- Owner-only online-member list, individual member inbox, shared next-session countdown and audit history.
+- Email/password signup and login, password reset, Google OAuth entry point, email confirmation and TOTP MFA with backup authenticator enrollment.
+- Supabase Realtime, private image/video/audio/file storage, notifications, dark/light theme and PWA installation.
 
-## Connected services
+## Stack
 
-- Repository: https://github.com/temporerygmail-sketch/ismailtrader_official
-- Supabase project ref: `qxqdicbhsnrjibwgypyi`
-- Region: `ap-southeast-2` (Sydney)
-- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
+- Frontend: static HTML, CSS and JavaScript.
+- Hosting: GitHub Pages, with validation-before-deployment using GitHub Actions.
+- Backend: Supabase Auth, PostgreSQL, Row Level Security, Storage and Realtime.
+- Supabase project: `nexoventia-trading-hub`
+- Project ref: `dbsgvcfvlnhwecyfsxib`
+- Region: `ap-south-1` (Mumbai)
+- Project URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
 
-The browser uses only a publishable Supabase key. A service-role or secret key is not included in frontend files.
+The browser uses only the Supabase publishable key. A service-role or secret key is never included in frontend code.
 
 ## Owner setup
 
-Read [SETUP.md](./SETUP.md) before inviting members. The owner must create and verify an account, then set their own `public.profiles.role` to `admin` in the Supabase SQL Editor. Google sign-in requires owner-configured OAuth credentials.
+Read [SETUP.md](./SETUP.md) before inviting members. The owner must create and verify an account, then promote their own account using the trusted `auth.users.raw_app_meta_data.role` claim and matching profile role in Supabase SQL Editor. Google sign-in needs OAuth credentials configured in Supabase.
 
 ## Important limitations
 
-- This is a manual record-keeping and educational demo-signal app. It does not connect to Quotex, execute orders, fetch broker balances, independently verify broker outcomes or promise returns.
-- The $10 starting-balance value is a provisional baseline; the owner can change it in Admin Control.
-- Supabase TOTP MFA supports multiple factors but does not expose recovery-code APIs. Enroll a separate backup authenticator.
-- Browser notifications depend on the browser/app being available. Fully closed-app push requires a separate push provider and VAPID credentials.
-- Android installation is through Chrome PWA install. This repository does not yet include a signed native APK.
-- Google OAuth and reliable production email delivery require owner-side provider/SMTP configuration in SETUP.md.
+- This app is a manual record-keeping and educational demo-signal workspace. It does not connect to Quotex, execute orders, fetch broker balances, independently verify broker outcomes or promise returns.
+- The $10 starting-balance baseline is provisional until the owner confirms the actual starting account balance.
+- Signal outcomes are entered by the owner and are not independently verified market results.
+- Supabase's default email sender is for light testing; dependable member signup/password reset requires a verified SMTP provider.
+- Google sign-in remains unavailable until the owner configures a Google OAuth Client ID and Client Secret in Supabase.
+- In-app/realtime and browser notifications are supported while the app/browser is active. Push delivery while fully closed needs a separate push provider and VAPID credentials.
+- Android users can install the PWA from Chrome. This repository does not contain a signed native APK.
+- Free hosting/database tiers have provider quotas and limits; they are not unlimited.
+
+## Checks
+
+Run `npm run check` to validate JavaScript syntax, challenge integrity, project configuration, RLS/security expectations, authentication hooks, PWA assets and required UI behaviours.

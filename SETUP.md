@@ -1,79 +1,110 @@
-# Nexoventia — Owner setup
+# NEXOVENTIA — Owner setup and deployment
 
 ## Connected services
 
 - GitHub repository: https://github.com/temporerygmail-sketch/ismailtrader_official
-- Live app: https://temporerygmail-sketch.github.io/ismailtrader_official/
-- Supabase project ref: `qxqdicbhsnrjibwgypyi`
-- Supabase region: `ap-southeast-2` (Sydney)
-- Supabase URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
+- GitHub Pages app: https://temporerygmail-sketch.github.io/ismailtrader_official/
+- Supabase project: `nexoventia-trading-hub`
+- Project ref: `dbsgvcfvlnhwecyfsxib`
+- Region: `ap-south-1` (Mumbai)
+- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
 
-The connected database already has its tables, Row Level Security policies, private media bucket, audit/notification triggers and Realtime publication changes. `schema.sql` is the canonical fresh-project reference; do not rerun it on the live database.
+The production database already contains the 31 challenge dates, shared record tables, Row Level Security policies, private media bucket, Realtime subscriptions, notifications and audit triggers. `schema.sql` is a reference snapshot, not a script to blindly run over a populated production database. Database migrations are applied through Supabase migration history.
 
-## 1. Create the owner account
+## 1. Create your owner account
 
-1. Open the live app and create your account with your own email and username.
-2. Verify your email if confirmation is enabled, then sign in once so your profile row is created.
-3. In Supabase Dashboard → SQL Editor, replace the example email and run:
+1. Open the app and create an account using your email, full name and a unique username.
+2. Confirm the verification email if email confirmation is enabled.
+3. Sign in once so Supabase creates your profile.
+4. In Supabase Dashboard → SQL Editor, replace the placeholder email below with the exact owner email, then run:
 
 ```sql
+update auth.users
+set raw_app_meta_data =
+  coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+where lower(email) = lower('YOUR-OWNER-EMAIL@example.com');
+
 update public.profiles
 set role = 'admin', updated_at = now()
 where id = (
-  select id
-  from auth.users
+  select id from auth.users
   where lower(email) = lower('YOUR-OWNER-EMAIL@example.com')
 );
 ```
 
-4. Sign out and sign in again. Admin Control will then appear.
+5. Sign out and sign in again so the refreshed JWT contains the trusted `app_metadata.role=admin` claim. Admin Control should then appear.
 
-Only promote your own owner account. The UI and database both use `public.profiles.role`. The RLS role check uses the private, non-exposed `private.is_admin()` helper. Members cannot change their own role.
+Promote only your own account. Authorization is enforced by the database using the trusted Supabase `app_metadata` claim; the user-editable `user_metadata` field is never used for admin authorization. Do not share your owner credentials.
 
-## 2. Configure email signup and redirects
+## 2. Configure email confirmation and password reset
 
 In Supabase Dashboard → Authentication → URL Configuration:
 
 - Site URL: `https://temporerygmail-sketch.github.io/ismailtrader_official/`
-- Add that exact URL under Redirect URLs.
-- Add `http://localhost:*` only for local development.
+- Add that exact URL to Redirect URLs.
+- Add `http://localhost:*` only if you use a local development server.
 
-The default Supabase email sender is suitable for limited testing. For dependable multi-user email verification and password resets, configure a verified SMTP provider. Do not store SMTP credentials in GitHub or frontend files.
+Supabase's default sender is suitable for limited testing. For dependable production confirmation and password-reset delivery, configure a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of GitHub and frontend files.
 
 ## 3. Enable Google sign-in
 
-The Google sign-in button is present, but it requires owner-provided OAuth credentials:
+The Google sign-in button is already in the app. It will work only after the owner configures OAuth credentials:
 
 1. In Google Cloud Console, create an OAuth Client ID of type Web application.
 2. Add Authorized JavaScript origin: `https://temporerygmail-sketch.github.io`.
-3. Add Authorized redirect URI: `https://qxqdicbhsnrjibwgypyi.supabase.co/auth/v1/callback`.
+3. Add Authorized redirect URI: `https://dbsgvcfvlnhwecyfsxib.supabase.co/auth/v1/callback`.
 4. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and add the Client ID and Client Secret.
-5. In Supabase → Authentication → URL Configuration, confirm the GitHub Pages URL is in Redirect URLs.
+5. Confirm that the GitHub Pages URL is in the Supabase Redirect URLs allow-list.
 
-Keep the Google Client Secret inside Supabase provider settings. Do not commit it to GitHub.
+Keep the Google Client Secret in Supabase provider settings only. Never commit it to this repository or place it in browser JavaScript.
 
-## 4. Authenticator backup
+## 4. Authenticator security
 
-In Settings, enroll a primary TOTP authenticator and then add a second device using **Add backup authenticator**. Keep the devices separate. At sign-in, choose a registered device and enter its six-digit code. Supabase Auth supports multiple factors but does not expose recovery-code APIs. If all registered devices are lost, contact the project owner for identity-verified recovery.
+A signed-in member can enrol an authenticator app in Settings. For backup, enrol a second separate authenticator device. The database requires an AAL2 session for accounts with a verified MFA factor. Supabase Auth does not provide recovery-code endpoints here; keep a second verified device available and use an identity-verified account recovery process if both devices are lost.
+
+The MFA policy helper is in the non-exposed `private` schema. The production database has a restrictive MFA policy on all application tables and the private media bucket.
 
 ## 5. GitHub Pages deployment
 
-Repository Settings → Pages must use **GitHub Actions** as the source. The repository validation workflow checks JavaScript syntax, challenge totals, RLS/schema assertions and required assets before it passes.
+In GitHub repository Settings → Pages → Build and deployment, choose **GitHub Actions** as the source.
 
-## 6. Install on Android
+The workflow runs `npm run check` and required-file checks first. The Pages deployment job runs only after validation passes. Each deployment from `main` publishes the validated static PWA.
 
-Open the live URL in Chrome → browser menu → **Install app** or **Add to Home screen**. This installs the PWA; it is not a signed native APK. A signed APK requires a separate Android packaging and signing build.
+## 6. Install on Android and desktop
 
-## 7. Notifications and online status
+Open the app URL in Chrome → browser menu → **Install app** or **Add to Home screen**. This installs the Progressive Web App in an app-like window. It is not a signed native Android APK. A signed APK requires a separate Android packaging, build and signing workflow.
 
-In-app/realtime notifications work while the app has an active connection. Browser notifications depend on browser availability and permission. Push while the app/browser is fully closed requires a separate push provider, VAPID keys and server-side delivery; these are not configured.
+The service worker checks for updated app assets when the app is revisited/reloaded while online. It does not silently update an app while the device is offline.
 
-Online presence is heartbeat-based while the app is open. It indicates a recently connected session, not proof that the member is actively viewing the screen.
+## 7. Notifications and online presence
 
-## 8. Security and scope
+In-app and Realtime notifications are stored in Supabase. Browser notifications need permission and an active browser/app session. Fully closed-app push notifications require a push provider, VAPID credentials and server-side delivery, which are not configured in this release.
 
-- Members can read the shared challenge plan, official signal archive, demo archive, day-close records and withdrawal history.
-- Members can post only in Discussion Group. Quetex Updates and both signal feeds are admin-only.
-- Private messaging is restricted to member ↔ admin. Member-to-member DMs are blocked by RLS.
-- Media is stored in a private bucket and requires authentication.
-- Balances, withdrawals and signal outcomes are manual records. Nexoventia does not connect to Quotex, execute trades, independently verify broker outcomes or promise returns. Binary options are high risk; this app is a record-keeping and educational tool, not trading advice.
+Online status is based on a heartbeat while the app is open. It represents a recently connected session, not proof that someone is actively looking at the screen.
+
+## 8. Community permissions
+
+- Quetex Updates: only the admin can publish; members read.
+- Quetex Official Signals: only the admin can publish signals and results; members view the shared archive.
+- Market Checking · Demo Signals: only the admin can publish demo records; members view the shared archive.
+- Discussion Group: signed-in members and the admin can post messages and supported media.
+- Private inbox: member ↔ admin only. Members cannot DM one another.
+- Online-member directory: admin only.
+
+These permissions are enforced through database Row Level Security, not just hidden interface controls.
+
+## 9. Challenge and financial record rules
+
+- Dates are December 1–31, 2026. Rest days are December 14, 21 and 28.
+- Nine planned withdrawals total $226.
+- Day 12 remains $25–$43 pending clarification; do not silently change it.
+- The initial $10 baseline is provisional. The owner should confirm the actual starting account balance before using it for P/L calculations.
+- The owner enters only the actual closing balance at day end. Recorded withdrawals are separate. The next day's opening balance carries forward from the actual prior close.
+- Corrections must be made as owner actions and reviewed against the audit history.
+- No record in this app changes a Quotex account or executes a trade.
+
+Binary options are high risk. Nexoventia is a manual record-keeping and educational tool, not financial advice, broker integration or a promise of returns.
+
+## 10. Free-tier and production limitations
+
+GitHub Pages and Supabase may be used on free tiers within their current quotas and service limits. Free plans are not unlimited. Reliable email at community scale, Google OAuth, and closed-app push notifications need the owner-side configuration described above.

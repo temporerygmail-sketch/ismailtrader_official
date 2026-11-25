@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none"><defs><linearGradient id="g" x1="28" y1="24" x2="226" y2="232" gradientUnits="userSpaceOnUse"><stop stop-color="#B49BFF"/><stop offset=".52" stop-color="#8B73F2"/><stop offset="1" stop-color="#53DCD2"/></linearGradient><linearGradient id="s" x1="72" y1="72" x2="182" y2="185" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#8DEEE5"/></linearGradient></defs><path d="M128 12 222 49v70c0 62-37 101-94 125-57-24-94-63-94-125V49l94-37Z" stroke="url(#g)" stroke-width="8" stroke-linejoin="round"/><path d="M78 174V82h18l64 61V82h18v92h-17l-65-62v62H78Z" fill="url(#s)"/><path d="M64 64h128M64 192h128" stroke="url(#g)" stroke-opacity=".36" stroke-width="3" stroke-linecap="round"/><circle cx="128" cy="40" r="4" fill="#B4F078"/><circle cx="128" cy="216" r="4" fill="#62E7DC"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">Nexoventia shield mark</title><desc id="desc">A geometric shield with a connected N monogram and ascending signal path.</desc>
+<defs>
+ <linearGradient id="edge" x1="30" y1="18" x2="228" y2="239" gradientUnits="userSpaceOnUse"><stop stop-color="#B7A3FF"/><stop offset=".52" stop-color="#8974F4"/><stop offset="1" stop-color="#58E0D5"/></linearGradient>
+ <linearGradient id="mark" x1="70" y1="72" x2="186" y2="180" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#8DF1E7"/></linearGradient>
+ <filter id="glow" x="15" y="10" width="226" height="239" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="7" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+</defs>
+<path d="M128 13 221 48v73c0 58-35 98-93 122-58-24-93-64-93-122V48l93-35Z" fill="#0B1022" stroke="url(#edge)" stroke-width="7" stroke-linejoin="round"/>
+<path d="M58 75h140M58 181h140" stroke="url(#edge)" stroke-opacity=".24" stroke-width="2"/>
+<path d="M77 174V82h17l68 64V82h17v92h-17L94 110v64H77Z" fill="url(#mark)" filter="url(#glow)"/>
+<path d="m88 191 22-13 17 8 26-25 18 4 17-19" stroke="#60E5D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+<circle cx="188" cy="146" r="5" fill="#B6F28B"/><circle cx="128" cy="38" r="4" fill="#B7A3FF"/>
+</svg>

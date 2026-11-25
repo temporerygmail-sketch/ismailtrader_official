@@ -35,3 +35,22 @@ button,.btn{border:1px solid var(--line2);background:linear-gradient(135deg,rgba
 .search-empty{padding:18px 12px;text-align:center;color:var(--muted);font-size:10px}
 @media(max-width:820px){.search-wrap{width:150px}}
 @media(max-width:560px){.search-wrap{display:none}}
+
+
+/* NEXOVENTIA v1.1 — dashboard signal snapshots, deliberate motion and keyboard access */
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.signal-snapshot{position:relative;overflow:hidden;isolation:isolate;min-width:0;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
+.signal-snapshot::before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse at 100% 0,rgba(91,220,210,.11),transparent 58%);opacity:.8;pointer-events:none}
+.signal-snapshot:hover{transform:translateY(-3px);border-color:rgba(98,231,220,.35);box-shadow:0 18px 38px rgba(0,0,0,.18)}
+.snapshot-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.snapshot-count{font-size:32px;font-weight:800;letter-spacing:-.04em;margin:12px 0 9px}
+.snapshot-count small{font:10px 'DM Mono',monospace;letter-spacing:.13em;color:var(--muted)}
+.snapshot-results{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.snapshot-results span{padding:6px 8px;border-radius:9px;background:rgba(255,255,255,.035);font:10px 'DM Mono',monospace}
+.snapshot-win{color:var(--green)}.snapshot-loss{color:var(--red)}.snapshot-refund{color:var(--cyan)}.snapshot-pending{color:var(--amber)}
+.snapshot-foot{display:flex;justify-content:space-between;gap:12px;padding-top:8px;margin-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.snapshot-foot strong{color:var(--text);font:600 11px 'DM Mono',monospace}
+.dashboard-snapshots{align-items:stretch}
+.dashboard-day-results .metric{min-width:0}
+@media(max-width:760px){.dashboard-snapshots{grid-template-columns:1fr}.signal-snapshot:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.signal-snapshot,.signal-snapshot:hover{transition:none;transform:none}}
