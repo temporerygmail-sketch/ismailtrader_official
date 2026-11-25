@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
-const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N0PmQ_WNX7Pqsa";
+const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_SwNW0kTerjBWjfTNl6s_zw_Ra5YxmB1";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -11,7 +11,7 @@ const state = {
   session: null, user: null, profile: null, isAdmin: false, page: "dashboard",
   authMode: "login", authBusy: false, busy: false, loading: true,
   days: [], closes: [], signals: [], withdrawals: [], messages: [], profiles: [],
-  presence: [], appState: {}, notifications: [], activePeriod: "today",
+  presence: [], appState: {}, notifications: [], activePeriod: "all",
   communityMode: "discussion", selectedInboxUser: "", inboxMessages: [],
   replyTo: null, queuedFiles: [], mediaCache: {}, toastTimer: null,
   recording: null, recordingStream: null, theme: localStorage.getItem("nx-theme") || "dark",
@@ -101,7 +101,6 @@ async function uploadFile(file,folder="media") {
 function empty(title,body,iconName="activity") { return '<div class="empty">'+icon(iconName)+'<h3>'+esc(title)+'</h3><p>'+esc(body)+'</p></div>'; }
 function pageHead(kicker,title,desc,action="") { return '<div class="page-head"><div><div class="eyebrow">'+esc(kicker)+'</div><h2>'+esc(title)+'</h2><p>'+esc(desc)+'</p></div>'+action+'</div>'; }
 function metric(label,value,foot,ic="activity",tone="") { return '<div class="panel metric"><div class="metric-top"><div class="metric-label">'+esc(label)+'</div><div class="metric-icon">'+icon(ic)+'</div></div><div class="metric-value '+tone+'">'+value+'</div><div class="metric-foot">'+esc(foot||"Updated from shared records")+'</div></div>'; }
-function periodTabs(active) { return '<div class="segmented" role="group" aria-label="Date filter">'+[['today','Today'],['week','Weekly'],['15d','15 days'],['all','All']].map(([v,t])=>'<button data-period="'+v+'" class="'+(active===v?"active":"")+'">'+t+'</button>').join("")+'</div>'; }
 
 async function loadData() {
   if(!state.user)return;
@@ -120,7 +119,7 @@ async function loadData() {
     for(const q of queries)if(q.error)throw q.error;
     state.profiles=profiles.data||[];
     state.profile=state.profiles.find(p=>p.id===state.user.id)||state.profile;
-    state.isAdmin=state.profile?.role==="admin" && state.user.app_metadata?.role==="admin";
+    state.isAdmin=state.profile?.role==="admin";
     state.days=days.data||[];state.closes=closes.data||[];state.signals=signals.data||[];
     state.withdrawals=withdrawals.data||[];state.appState=Object.fromEntries((appState.data||[]).map(x=>[x.key,x.value]));
     state.notifications=notifications.data||[];
@@ -231,7 +230,7 @@ supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>authChanged(se
 
 function renderAuth() {
   const signUp=state.authMode==="signup",forgot=state.authMode==="forgot";
-  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt="Nexoventia logo"><div><strong>NEXOVENTIA</strong><span>TRADING JOURNAL / COMMUNITY</span></div></div><div class="eyebrow" style="margin-top:54px">A PRIVATE OPERATIONS SPACE</div><h1>Track the plan.<br><em>Own the record.</em></h1><p>A shared challenge calendar, transparent signal history, withdrawal records and a moderated learning community — built for clarity, not hype.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> Private workspace</span><span class="chip">December 2026 challenge</span><span class="chip">Admin-controlled records</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div style="height:26px"></div><h2>'+(forgot?"Reset your password":signUp?"Create your account":"Welcome back")+'</h2><p>'+(forgot?"Enter your registered email and we will send a reset link.":signUp?"Create your member profile to join the shared workspace.":"Sign in to view the shared challenge, signal journal and community.")+'</p><form class="auth-form" id="authForm">'+(signUp?'<div class="field"><label>FULL NAME</label><input name="full_name" required maxlength="80" autocomplete="name" placeholder="Your full name"></div><div class="field"><label>USERNAME</label><input name="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="choose_username"></div>':'')+'<div class="field"><label>EMAIL ADDRESS</label><input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>'+(forgot?"":'<div class="field"><label>PASSWORD</label><input name="password" type="password" required minlength="8" autocomplete="'+(signUp?"new-password":"current-password")+'" placeholder="At least 8 characters"></div>')+'<button class="btn-primary" type="submit" id="authSubmit">'+(forgot?"Send reset link":signUp?"Create account":"Sign in securely")+'</button></form>'+(forgot?"":'<div class="auth-or">OR CONTINUE WITH</div><button class="btn-subtle" id="googleAuth" style="width:100%">Continue with Google</button>')+'<div class="auth-links"><button class="text-link" data-auth-mode="'+(signUp?"login":"signup")+'">'+(signUp?"Already have an account? Sign in":"Create an account")+'</button>'+(forgot?'':'<button class="text-link" data-auth-mode="forgot">Forgot password?</button>')+'</div><div class="divider"></div><div class="hint">Your password is handled by Supabase Auth. Nexoventia never stores plain-text passwords or asks for your Quotex credentials.</div></div></section></div>';
+  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt="Nexoventia logo"><div><strong>NEXOVENTIA</strong><span>TRADING JOURNAL / COMMUNITY</span></div></div><div class="eyebrow" style="margin-top:54px">A PRIVATE OPERATIONS SPACE</div><h1>Track the plan.<br><em>Own the record.</em></h1><p>A shared challenge calendar, transparent signal history, withdrawal records and a moderated learning community — built for clarity, not hype.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> Private workspace</span><span class="chip">December 2026 challenge</span><span class="chip">Admin-controlled records</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div style="height:26px"></div><h2>'+(forgot?"Reset your password":signUp?"Create your account":"Welcome back")+'</h2><p>'+(forgot?"Enter your registered email and we will send a reset link.":signUp?"Create your member profile to join the shared workspace.":"Sign in to view the shared challenge, signal journal and community.")+'</p><form class="auth-form" id="authForm">'+(signUp?'<div class="field"><label>FULL NAME</label><input name="full_name" required maxlength="80" autocomplete="name" placeholder="Your full name"></div><div class="field"><label>USERNAME</label><input name="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="choose_username"></div>':'')+'<div class="field"><label>EMAIL ADDRESS</label><input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>'+(forgot?"":'<div class="field"><label>PASSWORD</label><input name="password" type="password" required minlength="8" autocomplete="'+(signUp?"new-password":"current-password")+'" placeholder="At least 8 characters"></div>')+'<button class="btn-primary" type="submit" id="authSubmit">'+(forgot?"Send reset link":signUp?"Create account":"Sign in securely")+'</button></form>'+''+'<div class="auth-links"><button class="text-link" data-auth-mode="'+(signUp?"login":"signup")+'">'+(signUp?"Already have an account? Sign in":"Create an account")+'</button>'+(forgot?'':'<button class="text-link" data-auth-mode="forgot">Forgot password?</button>')+'</div><div class="divider"></div><div class="hint">Your password is handled by Supabase Auth. Nexoventia never stores plain-text passwords or asks for your Quotex credentials.</div></div></section></div>';
   const form=$("#authForm");
   form.addEventListener("submit",async e=>{
     e.preventDefault();if(state.authBusy)return;state.authBusy=true;
@@ -249,10 +248,6 @@ function renderAuth() {
         const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;await authChanged(data.session);
       }
     }catch(err){showError(err)}finally{state.authBusy=false;const b=$("#authSubmit");if(b)b.disabled=false;}
-  });
-  $("#googleAuth")?.addEventListener("click",async()=>{
-    try{const {error}=await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin+location.pathname}});if(error)throw error}
-    catch(err){showError(err)}
   });
   $$("[data-auth-mode]").forEach(b=>b.addEventListener("click",()=>{state.authMode=b.dataset.authMode;renderAuth()}));
 }
@@ -403,10 +398,10 @@ function renderDashboard() {
   return '<div class="panel hero"><div class="hero-orbit"></div><div class="hero-core"><img src="./logo.svg" alt=""></div><div class="hero-content"><div class="eyebrow">WELCOME BACK · '+(state.isAdmin?"OWNER ACCESS":"MEMBER ACCESS")+'</div><h2>Good to see you, '+esc((state.profile.display_name||"Member").split(" ")[0])+'.</h2><p>Your shared challenge workspace is ready. View the official record, track the calendar and review outcomes without changing the source data.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> '+esc(currentDayLabel())+'</span><span class="chip">31 calendar days</span><span class="chip">28 active · 3 rest</span></div></div></div>'+
   '<div class="section-row"><div><h3>Signal performance snapshots</h3><p>Daily, weekly, 15-day and lifetime totals from shared official outcomes</p></div><span class="tag">SHARED RECORDS</span></div>'+
   '<div class="grid grid-4 dashboard-snapshots">'+renderSignalSnapshot("Today","today")+renderSignalSnapshot("This week","week")+renderSignalSnapshot("15 days","15d")+renderSignalSnapshot("All time","all")+'</div>'+
-  '<div class="section-row"><div><h3>Challenge overview</h3><p>Shared records — all members see the same verified entries</p></div>'+periodTabs(state.activePeriod)+'</div>'+
+  '<div class="section-row"><div><h3>Challenge overview</h3><p>Shared records — all members see the same verified entries</p></div></div>'+
   '<div class="grid grid-4">'+metric("Latest recorded balance",latest?money(latest.closing_balance):"Not set",latest?"Closed on "+fmtDate(latest.closed_at):"Admin has not submitted a day close","wallet")+
   metric("Recorded withdrawals",money(totalWd),state.withdrawals.length+" receipt record(s)","download","cyan")+
-  metric("Net recorded result",money(c.net),"Selected period · includes recorded withdrawals","trend",c.net>=0?"positive":"negative")+
+  metric("Net recorded result",money(c.net),"All-time total · includes recorded withdrawals","trend",c.net>=0?"positive":"negative")+
   metric("Signal accuracy",winRate+"%",c.wins+" wins · "+c.losses+" losses · refunds excluded","chart","violet")+'</div>'+
   '<div class="grid grid-3" style="margin-top:15px"><div class="panel panel-pad span-2"><div class="section-row" style="margin:0 0 10px"><div><h3>Balance trajectory</h3><p>Actual end-of-day balances entered by the owner</p></div><span class="tag">ACTUAL RECORD</span></div>'+chartSvg(pnlRows())+'</div><div class="panel panel-pad"><div class="eyebrow">TODAY&#39;S TARGET</div><div class="metric-value" style="font-size:23px;margin:16px 0">'+target+'</div><p class="panel-sub">'+(todayDay?.is_rest_day?"No challenge activity is scheduled today.":todayDay?"From the original December 2026 plan. Actual results may differ.":"Challenge calendar begins December 1, 2026.")+'</p><div class="divider"></div><div class="eyebrow">NEXT DAY TO COMPLETE</div><div style="font-size:21px;font-weight:800;margin-top:8px">'+(upcoming?"Day "+upcoming.day_no:"—")+'</div><p class="panel-sub">'+(upcoming?fmtDate(upcoming.calendar_date+"T12:00:00Z",{dateStyle:"long"}):"All challenge dates have a close record.")+'</p></div></div>'+
   '<div class="section-row"><div><h3>Challenge progress</h3><p>Day-close records submitted</p></div><span class="mono">'+completed+' / '+active+' active days</span></div>'+
@@ -450,8 +445,8 @@ function renderSignalFeed(feed) {
   const title=isOfficial?"QUOTEX_OFFICIAL SIGNALS":"Market Checking · Demo Signals";
   const desc=isOfficial?"Read-only signal history shared with every member, including timestamps and result evidence.":"Educational market-checking practice records. No real trade is placed from this board.";
   return pageHead(isOfficial?"OFFICIAL RECORDS":"DEMO SIGNAL ROOM",title,desc)+
-  '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>Historical outcomes; refunds excluded from the win-rate calculation</p></div>'+periodTabs(state.activePeriod)+'</div>'+
-  '<div class="grid grid-4">'+metric("Total signals",stats.total,"In selected period","activity")+
+  '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>All-time outcomes; refunds excluded from the win-rate calculation</p></div></div>'+
+  '<div class="grid grid-4">'+metric("Total signals",stats.total,"All-time total","activity")+
   metric("Wins",stats.wins,"Owner-recorded outcomes","trend","positive")+
   metric("Losses",stats.losses,"Owner-recorded outcomes","activity","negative")+
   metric("Refunds",stats.refunds,stats.pending+" still pending","wallet","cyan")+'</div>'+
@@ -467,8 +462,8 @@ function renderTransactions() {
   const total=rows.reduce((s,w)=>s+Number(w.amount),0);
   const last=[...state.withdrawals].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
   return pageHead("MONEY MANAGER · SHARED LEDGER","Withdrawals & Receipts","Members can view the shared withdrawal ledger. Only the admin can add or correct a receipt.",state.isAdmin?'<button class="btn-primary" data-action="new-withdrawal">'+icon("plus")+' Add withdrawal</button>':"")+
-  '<div class="section-row" style="margin-top:0"><div><h3>Ledger overview</h3><p>Recorded withdrawals by date</p></div>'+periodTabs(state.activePeriod)+'</div>'+
-  '<div class="grid grid-3">'+metric("Selected period",money(total),"Withdrawal amount in selected view","wallet")+
+  '<div class="section-row" style="margin-top:0"><div><h3>Ledger overview</h3><p>All recorded withdrawals by date</p></div></div>'+
+  '<div class="grid grid-3">'+metric("Selected period",money(total),"All recorded withdrawals","wallet")+
   metric("Total recorded",money(state.withdrawals.reduce((s,w)=>s+Number(w.amount),0)),state.withdrawals.length+" receipts saved","download")+
   metric("Last withdrawal",last?money(last.amount):"—",last?fmtDate(last.created_at)+" · "+fmtTime(last.created_at):"No withdrawal recorded yet","clock")+'</div>'+
   '<div class="section-row"><div><h3>Receipt timeline</h3><p>Images, amount and automatic Pakistan date/time</p></div><span class="tag">READ-ONLY FOR MEMBERS</span></div>'+
@@ -611,9 +606,9 @@ function renderAnalytics() {
   const pnl=pnlRows();
   pnl.filter(r=>r.net_result!=null).forEach(r=>{if(!best||r.net_result>best.net_result)best=r;if(!worst||r.net_result<worst.net_result)worst=r});
   return pageHead("PERFORMANCE INTELLIGENCE","Analytics","Historical records only. Win rate is calculated from recorded wins and losses; it is not a predictive accuracy score.")+
-  '<div class="section-row" style="margin-top:0"><div><h3>Choose reporting window</h3><p>Daily, weekly, rolling 15-day and lifetime views</p></div>'+periodTabs(state.activePeriod)+'</div>'+
+  '<div class="section-row" style="margin-top:0"><div><h3>Lifetime reporting</h3><p>All records; daily, weekly, 15-day and lifetime signal snapshots remain on the dashboard</p></div></div>'+
   '<div class="inline-actions report-actions"><button class="btn-subtle btn-small" id="exportCsv">Download CSV</button><button class="btn-subtle btn-small" id="printReport">Print / Save PDF</button></div>'+
-  '<div class="grid grid-4">'+metric("Net recorded P/L",money(s.net),"For selected window","trend",s.net>=0?"positive":"negative")+
+  '<div class="grid grid-4">'+metric("Net recorded P/L",money(s.net),"For all recorded data","trend",s.net>=0?"positive":"negative")+
   metric("Withdrawals",money(s.wd),s.wRows.length+" receipt(s)","wallet")+
   metric("Win / Loss",s.wins+" / "+s.losses,"Refunds: "+s.refunds,"activity")+
   metric("Win rate",s.accuracy.toFixed(1)+"%","Wins ÷ (wins + losses)","chart","violet")+'</div>'+
@@ -727,7 +722,6 @@ function withdrawalModal() {
 }
 function bindPageEvents() {
   $$("[data-page]").forEach(el=>el.addEventListener("click",()=>{state.page=el.dataset.page;render();$("#sidebar")?.classList.remove("open")}));
-  $("[data-period]").forEach(el=>el.addEventListener("click",()=>{state.activePeriod=el.dataset.period;render()}));
   $("#exportCsv")?.addEventListener("click",exportAnalyticsCsv);
   $("#printReport")?.addEventListener("click",()=>window.print());
   $$("[data-community-mode]").forEach(el=>el.addEventListener("click",()=>{state.communityMode=el.dataset.communityMode;render();loadMessages()}));
