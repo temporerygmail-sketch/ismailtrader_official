@@ -52,21 +52,25 @@ The Google button is present in the app, but it will not work until you provide 
 
 The Google Client Secret must remain inside Supabase provider settings. Do not commit it to GitHub.
 
-## 4. GitHub Pages deployment
+## 4. Authenticator backup
+
+In Settings, enroll a primary TOTP authenticator and then add a second device using **Add backup authenticator**. Keep the two devices separate. At sign-in, choose the registered device and enter its six-digit code. Supabase Auth supports multiple enrolled factors but does not expose recovery-code APIs; if all enrolled devices are lost, contact the project owner for identity-verified recovery.
+
+## 5. GitHub Pages deployment
 
 Repository Settings → Pages must use **GitHub Actions** as the source. Each push to `main` runs the syntax and plan validation workflow. The Pages deployment job runs only after validation succeeds.
 
-## 5. Install on Android
+## 6. Install on Android
 
 Open the live URL in Chrome → browser menu → **Install app** or **Add to Home screen**. This installs the Progressive Web App. It is not a signed native APK; a signed APK needs a separate Android packaging and signing build.
 
-## 6. Notifications and online status
+## 7. Notifications and online status
 
 In-app and realtime notifications work while the app has an active connection. Browser notifications depend on browser availability and permission. WhatsApp-style push while the app/browser is fully closed requires a separate push provider, VAPID keys and server-side delivery; these are not configured yet.
 
 Online presence is based on an app heartbeat. It shows that a session is recently connected, not proof that someone is actively looking at the screen.
 
-## 7. Security and scope
+## 8. Security and scope
 
 - Members can read the shared challenge plan, official signal archive, demo archive, day closes and withdrawal history.
 - Members can post only in Discussion Group. Quetex Updates and both signal rooms are admin-only.
