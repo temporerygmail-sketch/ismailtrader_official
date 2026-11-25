@@ -54,6 +54,9 @@ assert.match(app, /https:\/\/qxqdicbhsnrjibwgypyi\.supabase\.co/, "Frontend must
 assert.match(app, /sb_publishable_/, "Frontend must use a publishable key");
 assert.match(app, /signInWithOAuth\(\{provider:"google"/, "Google sign-in entry point must exist");
 assert.match(app, /signInWithPassword/, "Email/password login must exist");
+assert.match(app, /supabase\.auth\.mfa\.listFactors\(\)/, "TOTP factor listing and backup-device support must exist");
+assert.match(app, /supabase\.auth\.mfa\.verify\(/, "TOTP challenge verification must exist");
+assert.equal(app.includes("recoveryCodes"), false, "Unsupported Supabase recovery-code APIs must not be used");
 assert.match(app, /async function sendChatMessage/, "Discussion message handler must be async");
 assert.match(app, /function renderGlobalSearchResults/, "Global search feature must be present");
 assert.match(app, /function resultModal/, "Signal Win/Loss/Refund form must exist");
