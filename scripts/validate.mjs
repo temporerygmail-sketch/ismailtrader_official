@@ -30,12 +30,13 @@ assert.ok(!app.includes("dbsgvcfvlnhwecyfsxib")&&!app.includes("service_role")&&
 assert.ok(app.includes('state.isAdmin=state.profile?.role==="admin";'));
 for(const f of ["signInWithPassword","signUp(","resetPasswordForEmail","supabase.auth.mfa.enroll","supabase.auth.mfa.challenge","supabase.auth.mfa.verify","function renderDashboard","function renderChallenge","function renderSignalFeed","function renderTransactions","function renderCommunity","function renderInbox","function renderNotifications","function renderAnalytics","function renderAdmin","function renderSettings","function resultModal","function toggleVoiceRecording","next_signal_at","nexoventia-media","Asia/Karachi","renderSignalSnapshot(\"Today\",\"today\")","renderSignalSnapshot(\"This week\",\"week\")","renderSignalSnapshot(\"All time\",\"all\")","Registered accounts","Profit days","PRE-WITHDRAWAL TARGET","ACTUAL CLOSE AFTER WD","data-action=\"new-update\""]) assert.ok(app.includes(f),"Missing "+f);
 assert.ok(!app.includes("periodTabs(")&&!app.includes("data-period")&&!app.includes("googleAuth"),"Removed date filters and unconfigured Google OAuth UI must stay removed.");
+assert.ok(app.includes("renderSignalSnapshot(\"15 days\",\"15d\")"),"15-day dashboard snapshot is required.");
 assert.ok(app.includes("function renderStickerMarkup")&&app.includes("async function sendSticker"),"Community sticker flow is required.");
 assert.ok(app.includes('id="stickerTray"')&&app.includes('id="stickerTrayToggle"'),"Sticker tray UI is required.");
 assert.ok(app.includes("NEXO_STICKER:")&&css.includes("sticker-tray"),"Sticker persistence and styles are required.");
 assert.ok(html.includes('id="app"')&&html.includes("logo.svg"));
 assert.ok(css.includes("prefers-reduced-motion")&&css.includes("signal-snapshot"));
-assert.ok(sw.includes("nexoventia-shell-v10"));
+assert.ok(sw.includes("nexoventia-shell-v11"));
 assert.equal(manifest.display,"standalone");
 for(const d of [readme,setup])assert.ok(d.includes("qxqdicbhsnrjibwgypyi")&&!d.includes("dbsgvcfvlnhwecyfsxib"));
 assert.ok(setup.includes("private.is_admin()")&&!setup.includes("raw_app_meta_data"));
