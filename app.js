@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
-const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0NPmQ_WNX7Pqsa";
+const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_SwNW0kTerjBWjfTNl6s_zw_Ra5YxmB1";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -202,8 +202,8 @@ function renderAuth() {
 }
 function navigation() {
   const items=[
-    ["dashboard","Overview","grid"],["challenge","Challenge Plan","calendar"],["notes","Official Notes","notes"],
-    ["demo","Demo Signal Board","chart"],["transactions","Withdrawals","wallet"],["community","Community","users"],
+    ["dashboard","Overview","grid"],["challenge","Challenge Plan","calendar"],["notes","Quetex Official Signals","notes"],
+    ["demo","Market Checking · Demo Signals","chart"],["transactions","Withdrawals","wallet"],["community","Community","users"],
     ["analytics","Analytics","activity"],["notifications","Notifications","bell"],["inbox","Admin Inbox","message"],
     ...(state.isAdmin?[["admin","Admin Control","shield"]]:[]),["settings","Settings","settings"]
   ];
@@ -213,7 +213,7 @@ function renderShell() {
   if(!state.profile){app.innerHTML='<div class="boot"><img src="./logo.svg" width="70"><p>PREPARING YOUR SECURE WORKSPACE…</p></div>';return;}
   if(!state.isAdmin&&state.page==="admin")state.page="dashboard";
   document.body.classList.toggle("light",state.theme==="light");
-  const names={dashboard:["WORKSPACE","Dashboard"],challenge:["CHALLENGE / DECEMBER 2026","Challenge Plan"],notes:["OFFICIAL SIGNAL ARCHIVE","Official Notes"],demo:["PRACTICE ONLY","Market Checking · Demo Signals"],transactions:["MONEY MANAGER","Withdrawals"],community:["COMMUNITY","Community"],analytics:["PERFORMANCE","Analytics"],notifications:["ALERT CENTRE","Notifications"],inbox:["PRIVATE SUPPORT","Admin Inbox"],admin:["OWNER TOOLS","Admin Control"],settings:["PREFERENCES","Settings"]};
+  const names={dashboard:["WORKSPACE","Dashboard"],challenge:["CHALLENGE / DECEMBER 2026","Challenge Plan"],notes:["OFFICIAL SIGNAL ARCHIVE","Quetex Official Signals"],demo:["PRACTICE ONLY","Market Checking · Demo Signals"],transactions:["MONEY MANAGER","Withdrawals"],community:["COMMUNITY","Community"],analytics:["PERFORMANCE","Analytics"],notifications:["ALERT CENTRE","Notifications"],inbox:["PRIVATE SUPPORT","Admin Inbox"],admin:["OWNER TOOLS","Admin Control"],settings:["PREFERENCES","Settings"]};
   const n=names[state.page]||names.dashboard;
   app.innerHTML='<div class="app-shell"><aside class="sidebar" id="sidebar"><div class="brand"><img src="./logo.svg" alt="Nexoventia"><div><div class="brand-name">NEXOVENTIA</div><div class="brand-sub">TRADING OPERATIONS</div></div></div>'+navigation()+'<div class="side-footer"><div class="status-pill"><i class="status-dot"></i> PRIVATE SESSION ACTIVE</div><div class="hint" style="padding:12px 4px 0">v1.0 · December challenge workspace</div></div></aside><main class="main"><header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation">'+icon("menu")+'</button><div><div class="eyebrow">'+n[0]+'</div><div class="page-title">'+n[1]+'</div></div></div><div class="top-actions"><label class="search-box">'+icon("search")+'<input id="globalSearch" placeholder="Search this workspace" value="'+esc(state.globalSearch)+'"></label><button class="icon-btn" data-page="notifications" aria-label="Notifications">'+icon("bell")+'</button><button class="icon-btn" data-page="settings" aria-label="Settings">'+icon("settings")+'</button><div class="avatar" title="'+esc(state.profile.display_name)+'">'+(state.profile.avatar_path?'<img data-media-path="'+esc(state.profile.avatar_path)+'" alt="">':esc(initials(state.profile.display_name)))+'</div></div></header><section class="page" id="pageContent">'+renderPage()+'</section></main></div><nav class="mobile-nav">'+[["dashboard","Overview","grid"],["challenge","Plan","calendar"],["notes","Notes","notes"],["community","Community","users"],["analytics","Stats","chart"]].map(([id,t,ic])=>'<button data-page="'+id+'" class="'+(state.page===id?"active":"")+'">'+icon(ic)+'<span>'+t+'</span></button>').join("")+'</nav><div id="modal-root"></div>';
   document.title="Nexoventia · "+n[1];
@@ -340,7 +340,7 @@ function renderSignalFeed(feed) {
   const period=state.activePeriod;
   const stats=signalStats(feed,period);
   const isOfficial=feed==="official";
-  const title=isOfficial?"Official Signal Notes":"Market Checking · Demo Signals";
+  const title=isOfficial?"Quetex Official Signals":"Market Checking · Demo Signals";
   const desc=isOfficial?"Read-only signal history shared with every member, including timestamps and result evidence.":"Educational market-checking practice records. No real trade is placed from this board.";
   return pageHead(isOfficial?"OFFICIAL RECORDS":"DEMO SIGNAL ROOM",title,desc)+
   '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>Historical outcomes; refunds excluded from the win-rate calculation</p></div>'+periodTabs(state.activePeriod)+'</div>'+
@@ -384,16 +384,21 @@ function updateCountdowns() {
 }
 function renderCommunity() {
   const mode=state.communityMode;
-  const updates=mode==="updates",channel=updates?"updates":"discussion";
-  const title=updates?"Quotex Updates":"Discussion Group";
-  const desc=updates?"Admin-only announcement room. Members can read and receive updates.":"Open group chat. Members can message, reply and share image, video, audio, GIF, sticker and document files.";
+  const updates=mode==="updates";
+  const title=updates?"Quetex Updates":"Discussion Group";
+  const desc=updates?"Admin-only announcement room. Members can read and receive updates.":"Open group chat. Members can message, reply and share photos, videos, voice notes, GIFs, stickers and files.";
   const compose=updates&&!state.isAdmin?'<div class="alert info">This room is announcement-only. Only the Nexoventia admin can publish here.</div>':'<div class="chat-compose"><button class="icon-btn" id="attachFiles" title="Attach media">'+icon("image")+'</button><input id="chatFiles" type="file" accept="image/*,video/mp4,video/webm,audio/*,application/pdf" multiple><textarea id="chatText" placeholder="'+(updates?"Write an announcement…":"Write a message to the community…")+'"></textarea><button class="icon-btn" id="recordVoice" title="Record voice note">'+icon("mic")+'</button><button class="btn-primary" id="sendMessage" aria-label="Send message">'+icon("send")+'</button></div>';
-  return pageHead("COMMUNITY · MODERATED ROOMS","Community","Every approved account can read all shared rooms. Members can post only in the Discussion Group.")+
-  '<div class="panel chat-layout"><aside class="chat-rooms"><div class="eyebrow" style="padding:3px 8px 10px">COMMUNITY ROOMS</div><button class="room-btn '+(updates?"active":"")+'" data-community-mode="updates"><span class="room-avatar">'+icon("bell")+'</span><span><div class="room-title">Quotex Updates</div><div class="room-sub">ADMIN POSTS ONLY</div></span></button><button class="room-btn '+(!updates?"active":"")+'" data-community-mode="discussion"><span class="room-avatar">'+icon("users")+'</span><span><div class="room-title">Discussion Group</div><div class="room-sub">MEMBER CHAT OPEN</div></span></button><div class="divider"></div><div class="hint">Other read-only rooms are available in Official Notes and Demo Signal Board.</div></aside><section class="chat-main"><header class="chat-header"><div><div class="panel-title">'+title+'</div><div class="hint">'+desc+'</div></div><span class="tag">'+(updates?"ADMIN ONLY":"ALL MEMBERS")+'</span></header><div class="chat-feed" id="chatFeed">'+empty("Loading messages","The newest messages will appear here.","message")+'</div>'+compose+'</section></div>'+
-  '<div class="hint" style="margin-top:12px">Privacy: members cannot send private messages to each other. Direct messages are available only between an individual member and the admin.</div>';
+  return pageHead("COMMUNITY · MODERATED ROOMS","Community","Four shared rooms. Members can post only in the Discussion Group; all other rooms are read-only for members.")+
+  '<div class="panel chat-layout"><aside class="chat-rooms"><div class="eyebrow" style="padding:3px 8px 10px">COMMUNITY ROOMS</div>'+
+  '<button class="room-btn '+(updates?"active":"")+'" data-community-mode="updates"><span class="room-avatar">'+icon("bell")+'</span><span><div class="room-title">Quetex Updates</div><div class="room-sub">ADMIN POSTS ONLY</div></span></button>'+
+  '<button class="room-btn" data-page="notes"><span class="room-avatar">'+icon("chart")+'</span><span><div class="room-title">Quetex Official Signals</div><div class="room-sub">ADMIN SIGNALS · READ ONLY</div></span></button>'+
+  '<button class="room-btn" data-page="demo"><span class="room-avatar">'+icon("activity")+'</span><span><div class="room-title">Market Checking · Demo Signals</div><div class="room-sub">ADMIN DEMO POSTS</div></span></button>'+
+  '<button class="room-btn '+(!updates?"active":"")+'" data-community-mode="discussion"><span class="room-avatar">'+icon("users")+'</span><span><div class="room-title">Discussion Group</div><div class="room-sub">MEMBER CHAT OPEN</div></span></button>'+
+  '<div class="divider"></div><div class="hint">Private messages are limited to member ↔ admin. Members cannot message one another privately.</div></aside>'+
+  '<section class="chat-main"><header class="chat-header"><div><div class="panel-title">'+title+'</div><div class="hint">'+desc+'</div></div><span class="tag">'+(updates?"ADMIN ONLY":"ALL MEMBERS")+'</span></header><div class="chat-feed" id="chatFeed">'+empty("Loading messages","The newest messages will appear here.","message")+'</div>'+compose+'</section></div>';
 }
 async function loadMessages(showToast=true) {
-  if(state.page!=="community")return;
+  if(state.page!=="community"||!["updates","discussion"].includes(state.communityMode))return;
   const feed=$("#chatFeed");if(showToast&&feed)feed.innerHTML=empty("Loading messages","Connecting to the shared room.","clock");
   try{
     const mode=state.communityMode==="updates"?"updates":"discussion";
@@ -451,7 +456,7 @@ function renderAnalytics() {
   const sorted=[...state.closes].sort((a,b)=>a.day_no-b.day_no);
   let best=null,worst=null;
   const pnl=pnlRows();
-  pnl.forEach(r=>{if(!best||r.net_result>best.net_result)best=r;if(!worst||r.net_result<worst.net_result)worst=r});
+  pnl.filter(r=>r.net_result!=null).forEach(r=>{if(!best||r.net_result>best.net_result)best=r;if(!worst||r.net_result<worst.net_result)worst=r});
   return pageHead("PERFORMANCE INTELLIGENCE","Analytics","Historical records only. Win rate is calculated from recorded wins and losses; it is not a predictive accuracy score.")+
   '<div class="section-row" style="margin-top:0"><div><h3>Choose reporting window</h3><p>Daily, weekly, rolling 15-day and lifetime views</p></div>'+periodTabs(state.activePeriod)+'</div>'+
   '<div class="grid grid-4">'+metric("Net recorded P/L",money(s.net),"For selected window","trend",s.net>=0?"positive":"negative")+
