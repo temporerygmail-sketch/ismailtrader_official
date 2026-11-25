@@ -6,9 +6,10 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 
 - App: https://temporerygmail-sketch.github.io/ismailtrader_official/
 - GitHub: https://github.com/temporerygmail-sketch/ismailtrader_official
-- Supabase project ref: `qxqdicbhsnrjibwgypyi`
-- Region: `ap-southeast-2` (Sydney)
-- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
+- Supabase project: `nexoventia-trading-hub`
+- Supabase project ref: `dbsgvcfvlnhwecyfsxib`
+- Region: `ap-south-1` (Mumbai)
+- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
 
 ## Modules
 
@@ -16,16 +17,22 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 - Challenge Plan: all 31 dates in December 2026; 28 active days and rest days on December 14, 21 and 28.
 - Notes: shared official signal archive, before/after evidence, pair, timeframe, direction, demo amount, expiry and Win/Loss/Refund result.
 - Transactions: shared withdrawal history and receipt images.
-- Community: Quetex Updates, Quetex Official Signals, Market Checking · Demo Signals and Discussion Group.
+- Community: Quetex Updates, Quetex Official Signals and Discussion Group. The Market Checking · Demo Signals option has been removed from the interface.
 - Inbox: member ↔ admin private messaging only. Members cannot DM one another.
 - Analytics, Notifications, Profile, Settings, TOTP MFA and Admin Control.
 - Admin-only tools: publish shared updates/signals, record signal results, add withdrawal receipts, close challenge days, edit the starting-balance baseline, set the next session time, view online members and privately message each member.
+
+## Authentication
+
+- Email/password signup and login use the connected `nexoventia-trading-hub` Supabase project.
+- Google sign-in is hidden until Google OAuth is configured in Supabase.
+- Email confirmation uses the GitHub Pages redirect URL documented in [SETUP.md](./SETUP.md). For reliable delivery to ordinary user addresses, configure a verified SMTP provider in Supabase Auth.
 
 ## Permissions
 
 - Quetex Updates: admin publishes; members read.
 - Quetex Official Signals: admin publishes and records outcomes; members read.
-- Market Checking · Demo Signals: admin publishes; members read.
+- Market Checking · Demo Signals: removed from the interface; existing historical database rows are preserved.
 - Discussion Group with text/media, recorded voice notes and eight built-in graphic stickers: signed-in members and admin can post supported text/media.
 - Private inbox: admin ↔ individual member only.
 - Online directory: admin only.
