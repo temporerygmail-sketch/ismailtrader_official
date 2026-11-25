@@ -10,7 +10,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: nexoventia-app
   cancel-in-progress: true
 jobs:
   validate:
