@@ -50,7 +50,7 @@ The default Supabase email sender is suitable for limited testing. For dependabl
 
 ## 3. Enable Google sign-in
 
-The Google button is already present. It requires credentials from your own Google Cloud project:
+The Google button is already present. Google sign-in requires a Google Client ID and Client Secret from your own Google Cloud project:
 
 1. In Google Cloud Console, create an OAuth Client ID of type **Web application**.
 2. Add Authorized JavaScript origin: `https://temporerygmail-sketch.github.io`.
