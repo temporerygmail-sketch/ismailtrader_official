@@ -8,7 +8,7 @@ https://temporerygmail-sketch.github.io/ismailtrader_official/
 
 ## App features
 
-- Email/password signup and login, email confirmation, password reset, Google OAuth entry point, and TOTP authenticator MFA with factor selection.
+- Email/password signup and login, email confirmation, password reset, Google OAuth entry point, and TOTP authenticator MFA with selection among multiple verified devices.
 - Shared December 1–31, 2026 challenge calendar: 28 active days and rest days on December 14, 21 and 28.
 - Original target ranges and nine planned withdrawals preserved, totaling $226. Day 12 remains $25–$43 and is flagged for clarification.
 - Admin-only official and demo signal publishing, post-expiry Win/Loss/Refund result entry, and before/after screenshot evidence.
@@ -19,7 +19,7 @@ https://temporerygmail-sketch.github.io/ismailtrader_official/
 - Members can post only in Discussion Group. Updates and both signal channels are admin-only.
 - Member-to-member direct messaging is blocked by database policies. Private messages are restricted to member ↔ admin.
 - Admin-only online-member view, individual member inbox, shared next-session countdown and audit history.
-- Private media storage, Supabase Row Level Security, Realtime updates and PWA installation.
+- Private media storage, Supabase Row Level Security, Realtime updates and PWA installation. Keep at least two verified TOTP devices enrolled; Supabase Auth does not provide recovery-code endpoints.
 
 ## Stack and connected services
 
