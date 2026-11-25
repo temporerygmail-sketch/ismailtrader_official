@@ -1,26 +1,33 @@
-# NEXOVENTIA — Trading Hub
+# NEXOVENTIA — Trading Operations Hub
 
-A responsive, installable web app for keeping a shared 31-day challenge log, educational/demo signal records, withdrawals, community messages and analytics.
+A responsive, installable PWA for the shared December 2026 challenge plan, official/demo signal archive, withdrawal receipts, admin-controlled balance closes, community and analytics.
 
 ## Live site
 https://temporerygmail-sketch.github.io/ismailtrader_official/
 
-## What is included
-- Supabase email/password authentication and Google OAuth button (Google provider requires owner credentials).
-- Shared December 1–31, 2026 plan, including three rest days and the unmodified Day 12 $25–$43 entry flagged for clarification.
-- Admin-only official/demo signal publishing and outcome recording (win/loss/refund) with before/after evidence.
-- Read-only member signal notes and withdrawal ledger.
-- Admin-only balance close entry; next day's opening balance is carried from the previous recorded close.
-- Four community spaces: Updates, Official Signals, Market Checking — Demo Signals, and Discussion Group.
-- Discussion Group supports member messages and media attachments. Private messages are limited to member→admin and admin→individual member.
-- Analytics filters, session countdown, online presence, settings, activity log and PWA install support.
-- Supabase RLS and private media bucket; no service-role key is shipped to the browser.
+## Features
+- Supabase email/password signup, login, password reset and Google OAuth button (Google provider credentials require owner setup).
+- Shared December 1–31, 2026 challenge calendar: 28 active days, three rest days, original target ranges and withdrawal plan preserved.
+- Day 12 remains recorded as $25–$43 pending clarification.
+- Admin-only official/demo signal publishing and post-expiry Win/Loss/Refund recording with before/after images.
+- Shared read-only official signal archive, demo signal archive and withdrawal history for members.
+- Admin-only actual day-close input; the next opening balance is derived from the previous known close.
+- Four community spaces: Quetex Updates, Quetex Official Signals, Market Checking · Demo Signals and Discussion Group.
+- Discussion Group supports member text, image, GIF, video, audio/voice-note and file attachments. Only admin may post in Updates or signal channels.
+- Private messages are limited to member ↔ admin. Admin can see online presence and message individual members.
+- Today, weekly, 15-day and all-time analytics; shared next-session countdown; PWA installation and theme settings.
+- Supabase RLS, private media bucket, audit log and Realtime updates.
 
-## Technology
-Static HTML/CSS/JavaScript deployed on GitHub Pages, Supabase Auth/Postgres/Storage/Realtime, and pinned @supabase/supabase-js v2.119.2 via jsDelivr ESM.
+## Stack
+Static HTML/CSS/JavaScript on GitHub Pages; Supabase Auth, Postgres, RLS, Storage and Realtime; pinned `@supabase/supabase-js` ESM.
 
-## Safety and scope
-This is a record-keeping and educational demo-signal tool only. It does not connect to Quotex, execute trades, place orders, verify market prices or guarantee returns. A displayed signal is a user-authored record, not a recommendation.
+## Database
+The connected project is `qxqdicbhsnrjibwgypyi`. The fresh-project schema is documented in `schema.sql` and `supabase/migrations/20261125153000_nexoventia_core.sql`.
 
-## First-time owner setup
-See SETUP.md. The owner must promote their own account in the Supabase SQL editor after registering. A Google OAuth Client ID and Client Secret must be configured by the project owner before Google sign-in works.
+## Important limitations
+- The app is a record-keeping and educational demo-signal tool only. It does not connect to Quotex, execute orders, verify the broker's outcome or guarantee returns.
+- Google sign-in needs the owner to configure OAuth credentials in Supabase.
+- Full background push notifications need a separately configured push provider.
+- Android installation currently uses the PWA, not a signed native APK.
+
+Owner setup instructions: see [SETUP.md](SETUP.md).
