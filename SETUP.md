@@ -9,7 +9,7 @@
 - Supabase region: ap-south-1 (Mumbai)
 - Supabase API URL: https://dbsgvcfvlnhwecyfsxib.supabase.co
 
-The production database is already initialized with the December challenge, member profiles, signals, withdrawals, day closes, community, private inbox, notifications, presence and private media. Application tables have RLS enabled. Do not execute schema.sql; it is a reference snapshot, not a migration.
+The active dbsgvcfvlnhwecyfsxib production database is already initialized with the December challenge and application tables with RLS enabled. The repository's schema.sql is an archived reference for the previous qxqdicbhsnrjibwgypyi project; never execute it. The active project's applied migrations are the schema source of truth.
 
 ## 1. Configure Supabase Auth
 
