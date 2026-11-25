@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
-const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N0PmQ_WNX7Pqsa";
+const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_SwNW0kTerjBWjfTNl6s_zw_Ra5YxmB1";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -120,7 +120,7 @@ async function loadData() {
     for(const q of queries)if(q.error)throw q.error;
     state.profiles=profiles.data||[];
     state.profile=state.profiles.find(p=>p.id===state.user.id)||state.profile;
-    state.isAdmin=state.profile?.role==="admin" && state.user.app_metadata?.role==="admin";
+    state.isAdmin=state.profile?.role==="admin";
     state.days=days.data||[];state.closes=closes.data||[];state.signals=signals.data||[];
     state.withdrawals=withdrawals.data||[];state.appState=Object.fromEntries((appState.data||[]).map(x=>[x.key,x.value]));
     state.notifications=notifications.data||[];
