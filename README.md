@@ -7,9 +7,9 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 - App: https://temporerygmail-sketch.github.io/ismailtrader_official/
 - GitHub: https://github.com/temporerygmail-sketch/ismailtrader_official
 - Supabase project: `nexoventia-trading-hub`
-- Supabase project ref: `qxqdicbhsnrjibwgypyi`
-- Region: `ap-southeast-2` (Sydney)
-- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
+- Supabase project ref: `dbsgvcfvlnhwecyfsxib`
+- Region: `ap-south-1` (Mumbai)
+- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
 
 ## Modules
 
