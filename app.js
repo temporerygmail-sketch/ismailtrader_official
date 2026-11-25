@@ -120,7 +120,7 @@ async function loadData() {
     for(const q of queries)if(q.error)throw q.error;
     state.profiles=profiles.data||[];
     state.profile=state.profiles.find(p=>p.id===state.user.id)||state.profile;
-    state.isAdmin=state.profile?.role==="admin" || state.user.app_metadata?.role==="admin";
+    state.isAdmin=state.profile?.role==="admin";
     state.days=days.data||[];state.closes=closes.data||[];state.signals=signals.data||[];
     state.withdrawals=withdrawals.data||[];state.appState=Object.fromEntries((appState.data||[]).map(x=>[x.key,x.value]));
     state.notifications=notifications.data||[];
