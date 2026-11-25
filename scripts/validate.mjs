@@ -35,7 +35,7 @@ assert.ok(schema.includes("ap-south-1"),"Schema reference must match active proj
 assert.ok(schema.includes("public.is_admin()"),"Trusted JWT admin helper must be documented");
 assert.ok(schema.includes("private.mfa_session_allowed()"),"MFA helper must be documented");
 assert.ok(schema.includes("nexoventia-media"),"Private media bucket must be documented");
-for(const table of ["profiles","challenge_days","signals","withdrawals","day_closes","messages","private_messages","user_presence","app_state","notifications","audit_log"]) {
+for(const table of ["profiles","challenge_days","signals","withdrawals","day_closes","messages","private_messages","user_presence","app_state","notifications","activity_logs"]) {
   assert.match(schema,new RegExp("\\b"+table+"\\b","i"),table+" must be documented");
 }
 
