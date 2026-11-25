@@ -3,6 +3,7 @@
 -- Project ref: dbsgvcfvlnhwecyfsxib
 -- ACTIVE PROJECT REF: dbsgvcfvlnhwecyfsxib
 -- Region: ap-south-1 (Mumbai)
+-- REGION: ap-south-1
 --
 -- IMPORTANT: This is a reference snapshot for review and validation.
 -- It is not a standalone migration and must not be executed over production.
@@ -43,11 +44,13 @@
 -- Members can insert messages only when channel='discussion'; admins can
 -- publish to the Updates and signal rooms. Users may delete only their own
 -- Discussion Group messages; admins can moderate.
+-- Live WITH CHECK expression: channel='discussion' OR public.is_admin(),
+-- combined with user_id=auth.uid().
 --
 -- Private inbox:
--- A member may send a private message only to a profile whose role='admin'.
--- Admins may message individual members. Member-to-member DMs are blocked
--- by the private_messages_insert_admin_route policy.
+-- The private_messages_insert_admin_route policy checks recipient_id against
+-- profiles.role='admin'. A member may send only to that admin profile;
+-- admins may message individual members. Member-to-member DMs are blocked.
 --
 -- Presence:
 -- Members upsert only their own user_presence row. The presence SELECT

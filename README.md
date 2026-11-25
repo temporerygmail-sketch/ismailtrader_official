@@ -37,7 +37,7 @@ Permissions are enforced in Supabase Row Level Security and database grants, not
 
 - Nine planned withdrawals total **$226**.
 - Day 12 remains **$25–$43** pending owner clarification; it is not silently changed.
-- Withdrawal-day target ranges are balances **before** that day's withdrawal.
+- **Pre-withdrawal target ranges** are balances before that day's withdrawal.
 - Day-close entry is the actual balance **remaining after** withdrawal. The next day's opening balance uses that recorded actual close.
 - Day 31 target is **$98–$112 before** the planned $82 withdrawal. At the $112 upper target, the remaining balance is $30. At $98, it is $16.
 - The $10 starting-balance reference is provisional until the owner confirms the actual starting balance.
