@@ -1,388 +1,470 @@
--- NEXOVENTIA Trading Hub — current Supabase schema
--- Active project ref: dbsgvcfvlnhwecyfsxib (ap-south-1 / Mumbai)
--- This file is the consolidated schema reference for a fresh project.
--- The migrations have already been applied to the connected live project.
--- Never re-run a destructive schema change in production without a backup.
+-- NEXOVENTIA Trading Hub — canonical schema matching the connected project
+-- Supabase project ref: qxqdicbhsnrjibwgypyi
+-- Fresh-project reference only. The connected project has already received migrations.
+-- Member financial and signal records are shared read-only; owner writes are RLS enforced.
 
 create extension if not exists pgcrypto;
 
-create or replace function public.is_admin()
-returns boolean language sql stable security invoker set search_path=''
-as $$ select coalesce((auth.jwt()->'app_metadata'->>'role')='admin',false); $$;
-revoke all on function public.is_admin() from public,anon;
-grant execute on function public.is_admin() to authenticated;
-
-create table if not exists public.profiles(
- id uuid primary key references auth.users(id) on delete cascade,
- display_name text not null default 'Member',
- username text unique,
- avatar_path text,
- bio text not null default '',
- role text not null default 'member' check(role in('member','admin','moderator')),
- created_at timestamptz not null default now(),
- updated_at timestamptz not null default now()
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null default 'Member',
+  username text unique,
+  avatar_path text,
+  bio text not null default '',
+  role text not null default 'member' check (role in ('admin','moderator','member')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path=public
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_admin()
+returns boolean language sql stable security definer set search_path = ''
 as $$
-declare v_name text;v_base text;v_username text;v_suffix text;v_attempt int:=0;
-begin
- v_name:=coalesce(nullif(trim(new.raw_user_meta_data->>'full_name'),''),nullif(trim(new.raw_user_meta_data->>'name'),''),split_part(coalesce(new.email,'member'),'@',1));
- v_base:=lower(regexp_replace(coalesce(new.raw_user_meta_data->>'username',split_part(coalesce(new.email,'member'),'@',1)),'[^a-z0-9_]','','g'));
- if v_base='' then v_base:='member';end if;
- v_base:=left(v_base,17);v_username:=v_base;
- while exists(select 1 from public.profiles where username=v_username) loop
-  v_attempt:=v_attempt+1;
-  v_suffix:='_'||substr(replace(new.id::text,'-',''),1,6+least(v_attempt,4));
-  v_username:=left(v_base,24-length(v_suffix))||v_suffix;
-  if v_attempt>8 then v_username:='member_'||substr(replace(new.id::text,'-',''),1,12);exit;end if;
- end loop;
- insert into public.profiles(id,display_name,username) values(new.id,left(v_name,80),left(v_username,24)) on conflict(id) do nothing;
- return new;
-end;$$;
-revoke all on function public.handle_new_user() from public,anon,authenticated;
-drop trigger if exists on_auth_user_created_profile on auth.users;
-create trigger on_auth_user_created_profile after insert on auth.users for each row execute procedure public.handle_new_user();
+  select exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
+  );
+$$;
+revoke all on function private.is_admin() from public, anon;
+grant execute on function private.is_admin() to authenticated;
 
-create table if not exists public.challenge_days(
- day_no smallint primary key check(day_no between 1 and 31),
- calendar_date date not null unique,
- target_min numeric(12,2),
- target_max numeric(12,2),
- planned_withdrawal numeric(12,2) not null default 0 check(planned_withdrawal>=0),
- is_rest_day boolean not null default false,
- clarification_needed boolean not null default false,
- admin_note text not null default '',
- created_at timestamptz not null default now(),
- updated_at timestamptz not null default now(),
- check((is_rest_day and target_min is null and target_max is null) or
-       (not is_rest_day and target_min is not null and target_max is not null and target_min<=target_max))
+create or replace function public.handle_new_nexoventia_user()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_name text;
+  v_base text;
+  v_candidate text;
+  v_suffix integer := 0;
+begin
+  v_name := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'full_name'),''),
+    nullif(trim(new.raw_user_meta_data->>'name'),''),
+    split_part(coalesce(new.email,'member'),'@',1),
+    'Member'
+  );
+  v_base := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'username',split_part(coalesce(new.email,'member'),'@',1)),
+    '[^a-z0-9_]','','g'
+  ));
+  if v_base = '' then v_base := 'member'; end if;
+  v_base := left(v_base,17);
+  v_candidate := v_base;
+  while exists(select 1 from public.profiles p where p.username=v_candidate) loop
+    v_suffix := v_suffix + 1;
+    v_candidate := left(v_base, greatest(3, 23-length(v_suffix::text))) || '_' || v_suffix::text;
+    if v_suffix > 12 then
+      v_candidate := 'member_' || substr(replace(new.id::text,'-',''),1,12);
+      exit;
+    end if;
+  end loop;
+  insert into public.profiles(id,display_name,username)
+  values(new.id,left(v_name,80),left(v_candidate,24))
+  on conflict(id) do nothing;
+  return new;
+end;
+$$;
+revoke all on function public.handle_new_nexoventia_user() from public, anon, authenticated;
+drop trigger if exists on_nexoventia_user_created on auth.users;
+create trigger on_nexoventia_user_created
+after insert on auth.users
+for each row execute function public.handle_new_nexoventia_user();
+
+create table if not exists public.challenge_days (
+  day_no integer primary key check(day_no between 1 and 31),
+  calendar_date date not null unique,
+  is_rest_day boolean not null default false,
+  target_min numeric(12,2),
+  target_max numeric(12,2),
+  planned_withdrawal numeric(12,2) not null default 0 check(planned_withdrawal>=0),
+  phase text not null,
+  note text not null default '',
+  clarification_needed boolean not null default false,
+  admin_note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check(
+    (is_rest_day and target_min is null and target_max is null)
+    or
+    (not is_rest_day and target_min is not null and target_max is not null and target_min<=target_max)
+  )
 );
-insert into public.challenge_days(day_no,calendar_date,target_min,target_max,planned_withdrawal,is_rest_day,clarification_needed,admin_note) values
-(1,'2026-12-01',10,13,0,false,false,''),
-(2,'2026-12-02',13,17,0,false,false,''),
-(3,'2026-12-03',17,22,0,false,false,''),
-(4,'2026-12-04',22,28,11,false,false,''),
-(5,'2026-12-05',17,22,0,false,false,''),
-(6,'2026-12-06',22,28,0,false,false,''),
-(7,'2026-12-07',28,35,13,false,false,''),
-(8,'2026-12-08',22,28,0,false,false,''),
-(9,'2026-12-09',28,35,0,false,false,''),
-(10,'2026-12-10',35,43,15,false,false,''),
-(11,'2026-12-11',28,35,0,false,false,''),
-(12,'2026-12-12',25,43,0,false,true,'Original preserved as $25-$43; confirm minimum.'),
-(13,'2026-12-13',43,52,17,false,false,''),
-(14,'2026-12-14',null,null,0,true,false,'Rest day'),
-(15,'2026-12-15',35,43,0,false,false,''),
-(16,'2026-12-16',43,52,0,false,false,''),
-(17,'2026-12-17',52,62,19,false,false,''),
-(18,'2026-12-18',43,52,0,false,false,''),
-(19,'2026-12-19',52,62,0,false,false,''),
-(20,'2026-12-20',62,73,21,false,false,''),
-(21,'2026-12-21',null,null,0,true,false,'Rest day'),
-(22,'2026-12-22',52,62,0,false,false,''),
-(23,'2026-12-23',62,73,0,false,false,''),
-(24,'2026-12-24',73,85,23,false,false,''),
-(25,'2026-12-25',62,73,0,false,false,''),
-(26,'2026-12-26',73,85,0,false,false,''),
-(27,'2026-12-27',85,98,25,false,false,''),
-(28,'2026-12-28',null,null,0,true,false,'Rest day'),
-(29,'2026-12-29',73,85,0,false,false,''),
-(30,'2026-12-30',85,98,0,false,false,''),
-(31,'2026-12-31',98,112,82,false,false,'')
+
+insert into public.challenge_days(day_no,calendar_date,is_rest_day,target_min,target_max,planned_withdrawal,phase,note,clarification_needed,admin_note) values
+(1,'2026-12-01',false,10,13,0,'Phase 1','Day 1 target',false,''),
+(2,'2026-12-02',false,13,17,0,'Phase 1','Day 2 target',false,''),
+(3,'2026-12-03',false,17,22,0,'Phase 1','Day 3 target',false,''),
+(4,'2026-12-04',false,22,28,11,'Phase 1','Day 4 target; planned withdrawal $11',false,''),
+(5,'2026-12-05',false,17,22,0,'Phase 1','Day 5 target after withdrawal',false,''),
+(6,'2026-12-06',false,22,28,0,'Phase 1','Day 6 target',false,''),
+(7,'2026-12-07',false,28,35,13,'Phase 1','Day 7 target; planned withdrawal $13',false,''),
+(8,'2026-12-08',false,22,28,0,'Phase 1','Day 8 target',false,''),
+(9,'2026-12-09',false,28,35,0,'Phase 1','Day 9 target',false,''),
+(10,'2026-12-10',false,35,43,15,'Phase 1','Day 10 target; planned withdrawal $15',false,''),
+(11,'2026-12-11',false,28,35,0,'Phase 1','Day 11 target',false,''),
+(12,'2026-12-12',false,25,43,0,'Phase 1','Original $25-$43 entry; clarification pending',true,'Confirm whether the minimum was intended to be $25 or $35. Do not auto-correct.'),
+(13,'2026-12-13',false,43,52,17,'Phase 1','Day 13 target; planned withdrawal $17',false,''),
+(14,'2026-12-14',true,null,null,0,'Rest','Rest day',false,''),
+(15,'2026-12-15',false,35,43,0,'Phase 2','Day 15 target',false,''),
+(16,'2026-12-16',false,43,52,0,'Phase 2','Day 16 target',false,''),
+(17,'2026-12-17',false,52,62,19,'Phase 2','Day 17 target; planned withdrawal $19',false,''),
+(18,'2026-12-18',false,43,52,0,'Phase 2','Day 18 target',false,''),
+(19,'2026-12-19',false,52,62,0,'Phase 2','Day 19 target',false,''),
+(20,'2026-12-20',false,62,73,21,'Phase 2','Day 20 target; planned withdrawal $21',false,''),
+(21,'2026-12-21',true,null,null,0,'Rest','Rest day',false,''),
+(22,'2026-12-22',false,52,62,0,'Phase 3','Day 22 target',false,''),
+(23,'2026-12-23',false,62,73,0,'Phase 3','Day 23 target',false,''),
+(24,'2026-12-24',false,73,85,23,'Phase 3','Day 24 target; planned withdrawal $23',false,''),
+(25,'2026-12-25',false,62,73,0,'Phase 3','Day 25 target',false,''),
+(26,'2026-12-26',false,73,85,0,'Phase 3','Day 26 target',false,''),
+(27,'2026-12-27',false,85,98,25,'Phase 3','Day 27 target; planned withdrawal $25',false,''),
+(28,'2026-12-28',true,null,null,0,'Rest','Rest day',false,''),
+(29,'2026-12-29',false,73,85,0,'Final Phase','Day 29 target',false,''),
+(30,'2026-12-30',false,85,98,0,'Final Phase','Day 30 target',false,''),
+(31,'2026-12-31',false,98,112,82,'Final Phase','Day 31 target; planned withdrawal $82; intended remaining balance $30',false,'')
 on conflict(day_no) do nothing;
 
-create table if not exists public.signals(
- id uuid primary key default gen_random_uuid(),
- feed text not null default 'official' check(feed in('official','demo')),
- day_no smallint references public.challenge_days(day_no),
- pair text not null,
- timeframe text not null default '1m',
- direction text not null check(direction in('UP','DOWN')),
- amount numeric(12,2) not null check(amount>0),
- issued_at timestamptz not null default now(),
- expiry_at timestamptz not null,
- before_path text,
- after_path text,
- outcome text not null default 'pending' check(outcome in('pending','win','loss','refund')),
- result_note text not null default '',
- issued_by uuid not null references public.profiles(id),
- result_at timestamptz,
- created_at timestamptz not null default now(),
- updated_at timestamptz not null default now(),
- check(expiry_at>issued_at)
+create table if not exists public.day_closes (
+  day_no integer primary key references public.challenge_days(day_no),
+  closing_balance numeric(12,2) not null check(closing_balance>=0),
+  note text not null default '',
+  closed_by uuid not null references public.profiles(id),
+  closed_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
-create index if not exists signals_feed_issued_idx on public.signals(feed,issued_at desc);
-create index if not exists signals_day_idx on public.signals(day_no,issued_at desc);
-create index if not exists signals_issued_by_idx on public.signals(issued_by);
 
-create table if not exists public.withdrawals(
- id uuid primary key default gen_random_uuid(),
- day_no smallint references public.challenge_days(day_no),
- amount numeric(12,2) not null check(amount>0),
- receipt_path text,
- note text not null default '',
- created_by uuid not null references public.profiles(id),
- created_at timestamptz not null default now()
+create table if not exists public.signals (
+  id bigint generated always as identity primary key,
+  feed text not null check(feed in ('official','demo')),
+  day_no integer references public.challenge_days(day_no),
+  pair text not null,
+  timeframe text not null default '1m',
+  direction text not null check(direction in ('UP','DOWN')),
+  amount numeric(12,2) not null check(amount>0),
+  issued_at timestamptz not null default now(),
+  expiry_at timestamptz not null,
+  before_path text not null,
+  after_path text,
+  outcome text not null default 'pending' check(outcome in ('pending','win','loss','refund')),
+  result_note text not null default '',
+  issued_by uuid not null references public.profiles(id),
+  result_at timestamptz,
+  updated_at timestamptz not null default now(),
+  check(expiry_at>issued_at)
 );
-create index if not exists withdrawals_created_idx on public.withdrawals(created_at desc);
-create index if not exists withdrawals_day_idx on public.withdrawals(day_no);
-create index if not exists withdrawals_created_by_idx on public.withdrawals(created_by);
 
-create table if not exists public.day_closes(
- day_no smallint primary key references public.challenge_days(day_no),
- closing_balance numeric(12,2) not null check(closing_balance>=0),
- note text not null default '',
- closed_by uuid not null references public.profiles(id),
- closed_at timestamptz not null default now(),
- updated_at timestamptz not null default now()
+create table if not exists public.withdrawals (
+  id bigint generated always as identity primary key,
+  amount numeric(12,2) not null check(amount>0),
+  day_no integer references public.challenge_days(day_no),
+  receipt_path text,
+  note text not null default '',
+  created_by uuid not null references public.profiles(id),
+  created_at timestamptz not null default now()
 );
-create index if not exists day_closes_closed_by_idx on public.day_closes(closed_by);
 
-create table if not exists public.messages(
- id uuid primary key default gen_random_uuid(),
- channel text not null check(channel in('updates','discussion')),
- user_id uuid not null references public.profiles(id),
- body text not null default '',
- attachments jsonb not null default '[]'::jsonb,
- reply_to uuid references public.messages(id) on delete set null,
- created_at timestamptz not null default now(),
- edited_at timestamptz,
- check(char_length(body)<=5000)
+create table if not exists public.app_state (
+  key text primary key,
+  value jsonb not null default 'null'::jsonb,
+  updated_by uuid references public.profiles(id),
+  updated_at timestamptz not null default now()
 );
-create index if not exists messages_channel_created_idx on public.messages(channel,created_at desc);
-create index if not exists messages_user_idx on public.messages(user_id);
-create index if not exists messages_reply_to_idx on public.messages(reply_to);
-
-create table if not exists public.private_messages(
- id uuid primary key default gen_random_uuid(),
- sender_id uuid not null references public.profiles(id),
- recipient_id uuid not null references public.profiles(id),
- body text not null default '',
- attachments jsonb not null default '[]'::jsonb,
- read_at timestamptz,
- created_at timestamptz not null default now(),
- check(sender_id<>recipient_id),
- check(char_length(body)<=5000)
-);
-create index if not exists private_messages_pair_created_idx on public.private_messages(sender_id,recipient_id,created_at desc);
-create index if not exists private_messages_recipient_idx on public.private_messages(recipient_id);
-
-create table if not exists public.user_presence(
- user_id uuid primary key references public.profiles(id) on delete cascade,
- is_online boolean not null default false,
- last_seen timestamptz not null default now(),
- updated_at timestamptz not null default now()
-);
-create table if not exists public.app_state(
- key text primary key,
- value jsonb not null default 'null'::jsonb,
- updated_by uuid references public.profiles(id),
- updated_at timestamptz not null default now()
-);
-create index if not exists app_state_updated_by_idx on public.app_state(updated_by);
 insert into public.app_state(key,value) values
-('next_signal_at','null'::jsonb),('challenge_start','"2026-12-01"'::jsonb),('starting_balance','10'::jsonb)
+('next_signal_at','null'::jsonb),
+('challenge_start_date','"2026-12-01"'::jsonb),
+('challenge_timezone','"Asia/Karachi"'::jsonb),
+('starting_balance','10'::jsonb)
 on conflict(key) do nothing;
 
-create table if not exists public.notifications(
- id uuid primary key default gen_random_uuid(),
- user_id uuid not null references public.profiles(id) on delete cascade,
- title text not null,
- body text not null default '',
- category text not null default 'general',
- read_at timestamptz,
- created_at timestamptz not null default now()
+create table if not exists public.messages (
+  id bigint generated always as identity primary key,
+  channel text not null check(channel in ('updates','official','demo','discussion')),
+  user_id uuid not null references public.profiles(id),
+  body text not null default '' check(char_length(body)<=10000),
+  attachments jsonb not null default '[]'::jsonb,
+  reply_to bigint references public.messages(id),
+  edited_at timestamptz,
+  created_at timestamptz not null default now()
 );
+
+create table if not exists public.private_messages (
+  id bigint generated always as identity primary key,
+  sender_id uuid not null references public.profiles(id),
+  recipient_id uuid not null references public.profiles(id),
+  body text not null check(char_length(body) between 1 and 10000),
+  read_at timestamptz,
+  created_at timestamptz not null default now(),
+  check(sender_id<>recipient_id)
+);
+
+create table if not exists public.user_presence (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  is_online boolean not null default false,
+  last_seen timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.notifications (
+  id bigint generated always as identity primary key,
+  user_id uuid references public.profiles(id) on delete cascade,
+  title text not null,
+  body text not null default '',
+  kind text not null default 'announcement',
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.activity_logs (
+  id bigint generated always as identity primary key,
+  actor_id uuid references public.profiles(id),
+  entity text not null,
+  entity_id text,
+  action text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists signals_issued_at_idx on public.signals(issued_at desc);
+create index if not exists signals_feed_issued_at_idx on public.signals(feed,issued_at desc);
+create index if not exists signals_day_no_idx on public.signals(day_no);
+create index if not exists signals_issued_by_idx on public.signals(issued_by);
+create index if not exists withdrawals_created_at_idx on public.withdrawals(created_at desc);
+create index if not exists withdrawals_created_by_idx on public.withdrawals(created_by);
+create index if not exists withdrawals_day_no_idx on public.withdrawals(day_no);
+create index if not exists day_closes_closed_by_idx on public.day_closes(closed_by);
+create index if not exists messages_channel_created_idx on public.messages(channel,created_at desc);
+create index if not exists messages_user_id_idx on public.messages(user_id);
+create index if not exists messages_reply_to_idx on public.messages(reply_to);
+create index if not exists private_messages_pair_idx on public.private_messages(sender_id,recipient_id,created_at desc);
+create index if not exists private_messages_recipient_id_idx on public.private_messages(recipient_id);
 create index if not exists notifications_user_created_idx on public.notifications(user_id,created_at desc);
-
-create table if not exists public.activity_logs(
- id bigint generated always as identity primary key,
- actor_id uuid references public.profiles(id),
- entity text not null,
- entity_id text,
- action text not null,
- before_data jsonb,
- after_data jsonb,
- created_at timestamptz not null default now()
-);
-create index if not exists activity_logs_created_idx on public.activity_logs(created_at desc);
-create index if not exists activity_logs_actor_idx on public.activity_logs(actor_id);
-
-create or replace function public.write_activity_log()
-returns trigger language plpgsql security definer set search_path=public
-as $$
-declare v_old jsonb;v_new jsonb;v_id text;
-begin
- if tg_op<>'INSERT' then v_old:=to_jsonb(old);end if;
- if tg_op<>'DELETE' then v_new:=to_jsonb(new);end if;
- v_id:=coalesce(v_new->>'id',v_new->>'day_no',v_old->>'id',v_old->>'day_no');
- insert into public.activity_logs(actor_id,entity,entity_id,action,before_data,after_data)
- values(auth.uid(),tg_table_name,v_id,lower(tg_op),v_old,v_new);
- if tg_op='DELETE' then return old;else return new;end if;
-end;$$;
-revoke all on function public.write_activity_log() from public,anon,authenticated;
-drop trigger if exists audit_signals on public.signals;
-create trigger audit_signals after insert or update or delete on public.signals for each row execute procedure public.write_activity_log();
-drop trigger if exists audit_withdrawals on public.withdrawals;
-create trigger audit_withdrawals after insert or update or delete on public.withdrawals for each row execute procedure public.write_activity_log();
-drop trigger if exists audit_day_closes on public.day_closes;
-create trigger audit_day_closes after insert or update or delete on public.day_closes for each row execute procedure public.write_activity_log();
-
-create or replace function public.create_member_notification()
-returns trigger language plpgsql security definer set search_path=public
-as $$
-declare v_title text;v_body text;v_category text;v_actor uuid;
-begin
- if tg_table_name='signals' then
-  if tg_op='INSERT' then
-   v_title:=case when new.feed='official' then 'New official signal' else 'New demo signal' end;
-   v_body:=new.pair||' · '||new.direction||' · '||new.timeframe;v_category:='signal';v_actor:=new.issued_by;
-  elsif tg_op='UPDATE' and new.outcome is distinct from old.outcome and new.outcome<>'pending' then
-   v_title:='Signal result recorded';v_body:=new.pair||' · '||upper(new.outcome);v_category:='result';v_actor:=new.issued_by;
-  else return new;end if;
- elsif tg_table_name='withdrawals' and tg_op='INSERT' then
-  v_title:='Withdrawal record added';v_body:='$'||to_char(new.amount,'FM999999990.00');v_category:='withdrawal';v_actor:=new.created_by;
- elsif tg_table_name='day_closes' and (tg_op='INSERT' or (tg_op='UPDATE' and new.closing_balance is distinct from old.closing_balance)) then
-  v_title:='Challenge day closed';v_body:='Day '||new.day_no||' · closing balance $'||to_char(new.closing_balance,'FM999999990.00');v_category:='challenge';v_actor:=new.closed_by;
- elsif tg_table_name='messages' and tg_op='INSERT' and new.channel='updates' then
-  v_title:='Nexoventia update';v_body:=case when length(new.body)>140 then left(new.body,137)||'...' else new.body end;v_category:='announcement';v_actor:=new.user_id;
- else return new;end if;
- insert into public.notifications(user_id,title,body,category)
- select p.id,v_title,coalesce(v_body,''),v_category from public.profiles p where p.id is distinct from v_actor;
- return new;
-end;$$;
-revoke all on function public.create_member_notification() from public,anon,authenticated;
-drop trigger if exists notify_signal_change on public.signals;
-create trigger notify_signal_change after insert or update on public.signals for each row execute procedure public.create_member_notification();
-drop trigger if exists notify_withdrawal_insert on public.withdrawals;
-create trigger notify_withdrawal_insert after insert on public.withdrawals for each row execute procedure public.create_member_notification();
-drop trigger if exists notify_day_close on public.day_closes;
-create trigger notify_day_close after insert or update on public.day_closes for each row execute procedure public.create_member_notification();
-drop trigger if exists notify_update_message on public.messages;
-create trigger notify_update_message after insert on public.messages for each row execute procedure public.create_member_notification();
+create index if not exists presence_last_seen_idx on public.user_presence(last_seen desc);
+create index if not exists app_state_updated_by_idx on public.app_state(updated_by);
+create index if not exists activity_logs_actor_id_idx on public.activity_logs(actor_id);
 
 alter table public.profiles enable row level security;
 alter table public.challenge_days enable row level security;
+alter table public.day_closes enable row level security;
 alter table public.signals enable row level security;
 alter table public.withdrawals enable row level security;
-alter table public.day_closes enable row level security;
+alter table public.app_state enable row level security;
 alter table public.messages enable row level security;
 alter table public.private_messages enable row level security;
 alter table public.user_presence enable row level security;
-alter table public.app_state enable row level security;
 alter table public.notifications enable row level security;
 alter table public.activity_logs enable row level security;
 
-drop policy if exists profiles_read on public.profiles;
-create policy profiles_read on public.profiles for select to authenticated using(true);
-drop policy if exists profiles_update on public.profiles;
-create policy profiles_update on public.profiles for update to authenticated
-using(id=(select auth.uid()) or public.is_admin())
-with check(public.is_admin() or (id=(select auth.uid()) and role='member'));
+create policy "profiles visible to authenticated members" on public.profiles
+for select to authenticated using(true);
+create policy "members and admins update profiles" on public.profiles
+for update to authenticated
+using((id=(select auth.uid()) and role='member') or (select private.is_admin()))
+with check((id=(select auth.uid()) and role='member') or (select private.is_admin()));
+create policy "admins delete profiles" on public.profiles
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists challenge_read on public.challenge_days;
-create policy challenge_read on public.challenge_days for select to authenticated using(true);
-drop policy if exists challenge_admin_update on public.challenge_days;
-create policy challenge_admin_update on public.challenge_days for update to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy "challenge calendar visible to members" on public.challenge_days
+for select to authenticated using(true);
+create policy "admins insert challenge calendar" on public.challenge_days
+for insert to authenticated with check((select private.is_admin()));
+create policy "admins update challenge calendar" on public.challenge_days
+for update to authenticated using((select private.is_admin())) with check((select private.is_admin()));
+create policy "admins delete challenge calendar" on public.challenge_days
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists signals_read on public.signals;
-create policy signals_read on public.signals for select to authenticated using(true);
-drop policy if exists signals_admin_insert on public.signals;
-create policy signals_admin_insert on public.signals for insert to authenticated with check(public.is_admin() and issued_by=(select auth.uid()));
-drop policy if exists signals_admin_update on public.signals;
-create policy signals_admin_update on public.signals for update to authenticated using(public.is_admin()) with check(public.is_admin());
-drop policy if exists signals_admin_delete on public.signals;
-create policy signals_admin_delete on public.signals for delete to authenticated using(public.is_admin());
+create policy "day closes visible to members" on public.day_closes
+for select to authenticated using(true);
+create policy "admins insert day closes" on public.day_closes
+for insert to authenticated with check((select private.is_admin()));
+create policy "admins update day closes" on public.day_closes
+for update to authenticated using((select private.is_admin())) with check((select private.is_admin()));
+create policy "admins delete day closes" on public.day_closes
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists withdrawals_read on public.withdrawals;
-create policy withdrawals_read on public.withdrawals for select to authenticated using(true);
-drop policy if exists withdrawals_admin_insert on public.withdrawals;
-create policy withdrawals_admin_insert on public.withdrawals for insert to authenticated with check(public.is_admin() and created_by=(select auth.uid()));
-drop policy if exists withdrawals_admin_update on public.withdrawals;
-create policy withdrawals_admin_update on public.withdrawals for update to authenticated using(public.is_admin()) with check(public.is_admin());
-drop policy if exists withdrawals_admin_delete on public.withdrawals;
-create policy withdrawals_admin_delete on public.withdrawals for delete to authenticated using(public.is_admin());
+create policy "signals visible to members" on public.signals
+for select to authenticated using(true);
+create policy "admins insert signals" on public.signals
+for insert to authenticated with check((select private.is_admin()));
+create policy "admins update signals" on public.signals
+for update to authenticated using((select private.is_admin())) with check((select private.is_admin()));
+create policy "admins delete signals" on public.signals
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists day_closes_read on public.day_closes;
-create policy day_closes_read on public.day_closes for select to authenticated using(true);
-drop policy if exists day_closes_admin_insert on public.day_closes;
-create policy day_closes_admin_insert on public.day_closes for insert to authenticated with check(public.is_admin() and closed_by=(select auth.uid()));
-drop policy if exists day_closes_admin_update on public.day_closes;
-create policy day_closes_admin_update on public.day_closes for update to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy "withdrawals visible to members" on public.withdrawals
+for select to authenticated using(true);
+create policy "admins insert withdrawals" on public.withdrawals
+for insert to authenticated with check((select private.is_admin()));
+create policy "admins update withdrawals" on public.withdrawals
+for update to authenticated using((select private.is_admin())) with check((select private.is_admin()));
+create policy "admins delete withdrawals" on public.withdrawals
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists messages_read on public.messages;
-create policy messages_read on public.messages for select to authenticated using(true);
-drop policy if exists messages_insert on public.messages;
-create policy messages_insert on public.messages for insert to authenticated with check(user_id=(select auth.uid()) and (channel='discussion' or public.is_admin()));
-drop policy if exists messages_update_own_discussion on public.messages;
-create policy messages_update_own_discussion on public.messages for update to authenticated using(user_id=(select auth.uid()) and channel='discussion') with check(user_id=(select auth.uid()) and channel='discussion');
-drop policy if exists messages_delete_admin_or_own on public.messages;
-create policy messages_delete_admin_or_own on public.messages for delete to authenticated using(public.is_admin() or (user_id=(select auth.uid()) and channel='discussion'));
+create policy "app state visible to members" on public.app_state
+for select to authenticated using(true);
+create policy "admins insert app state" on public.app_state
+for insert to authenticated with check((select private.is_admin()));
+create policy "admins update app state" on public.app_state
+for update to authenticated using((select private.is_admin())) with check((select private.is_admin()));
+create policy "admins delete app state" on public.app_state
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists private_messages_read_participants on public.private_messages;
-create policy private_messages_read_participants on public.private_messages for select to authenticated using(sender_id=(select auth.uid()) or recipient_id=(select auth.uid()) or public.is_admin());
-drop policy if exists private_messages_insert_admin_route on public.private_messages;
-create policy private_messages_insert_admin_route on public.private_messages for insert to authenticated with check(sender_id=(select auth.uid()) and (public.is_admin() or exists(select 1 from public.profiles p where p.id=recipient_id and p.role='admin')));
-drop policy if exists private_messages_update_recipient on public.private_messages;
-create policy private_messages_update_recipient on public.private_messages for update to authenticated using(recipient_id=(select auth.uid()) or public.is_admin()) with check(recipient_id=(select auth.uid()) or public.is_admin());
+create policy "members read community posts" on public.messages
+for select to authenticated using(true);
+create policy "only discussion members or admins may post" on public.messages
+for insert to authenticated
+with check(user_id=(select auth.uid()) and (channel='discussion' or (select private.is_admin())));
+create policy "admins delete messages" on public.messages
+for delete to authenticated using((select private.is_admin()));
 
-drop policy if exists presence_read_self_or_admin on public.user_presence;
-create policy presence_read_self_or_admin on public.user_presence for select to authenticated using(user_id=(select auth.uid()) or public.is_admin());
-drop policy if exists presence_insert_self on public.user_presence;
-create policy presence_insert_self on public.user_presence for insert to authenticated with check(user_id=(select auth.uid()));
-drop policy if exists presence_update_self on public.user_presence;
-create policy presence_update_self on public.user_presence for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy "admin and member read own private conversations" on public.private_messages
+for select to authenticated using(sender_id=(select auth.uid()) or recipient_id=(select auth.uid()));
+create policy "private messages only between admin and member" on public.private_messages
+for insert to authenticated with check(
+  sender_id=(select auth.uid()) and (
+    ((select private.is_admin()) and exists(select 1 from public.profiles p where p.id=recipient_id and p.role='member'))
+    or
+    (not (select private.is_admin()) and exists(select 1 from public.profiles p where p.id=recipient_id and p.role='admin'))
+  )
+);
+create policy "recipient marks private message read" on public.private_messages
+for update to authenticated using(recipient_id=(select auth.uid())) with check(recipient_id=(select auth.uid()));
 
-drop policy if exists app_state_read on public.app_state;
-create policy app_state_read on public.app_state for select to authenticated using(true);
-drop policy if exists app_state_admin_insert on public.app_state;
-create policy app_state_admin_insert on public.app_state for insert to authenticated with check(public.is_admin());
-drop policy if exists app_state_admin_update on public.app_state;
-create policy app_state_admin_update on public.app_state for update to authenticated using(public.is_admin()) with check(public.is_admin());
-drop policy if exists app_state_admin_delete on public.app_state;
-create policy app_state_admin_delete on public.app_state for delete to authenticated using(public.is_admin());
+create policy "users create own presence" on public.user_presence
+for insert to authenticated with check(user_id=(select auth.uid()));
+create policy "users update own presence" on public.user_presence
+for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
+create policy "users delete own presence" on public.user_presence
+for delete to authenticated using(user_id=(select auth.uid()));
+create policy "admins can view all presence" on public.user_presence
+for select to authenticated using((select private.is_admin()));
 
-drop policy if exists notifications_read_own on public.notifications;
-create policy notifications_read_own on public.notifications for select to authenticated using(user_id=(select auth.uid()) or public.is_admin());
-drop policy if exists notifications_insert_admin on public.notifications;
-create policy notifications_insert_admin on public.notifications for insert to authenticated with check(public.is_admin());
-drop policy if exists notifications_update_own on public.notifications;
-create policy notifications_update_own on public.notifications for update to authenticated using(user_id=(select auth.uid()) or public.is_admin()) with check(user_id=(select auth.uid()) or public.is_admin());
+create policy "users read global or own notices; admins read all" on public.notifications
+for select to authenticated using(user_id is null or user_id=(select auth.uid()) or (select private.is_admin()));
+create policy "admins create notifications" on public.notifications
+for insert to authenticated with check((select private.is_admin()));
+create policy "users mark own notices read" on public.notifications
+for update to authenticated using(user_id=(select auth.uid())) with check(user_id=(select auth.uid()));
 
-drop policy if exists activity_logs_admin_read on public.activity_logs;
-create policy activity_logs_admin_read on public.activity_logs for select to authenticated using(public.is_admin());
+create policy "admins read activity logs" on public.activity_logs
+for select to authenticated using((select private.is_admin()));
+create policy "admins insert activity logs" on public.activity_logs
+for insert to authenticated with check((select private.is_admin()));
 
-grant select on public.profiles,public.challenge_days,public.signals,public.withdrawals,public.day_closes,public.messages,public.private_messages,public.user_presence,public.app_state,public.notifications,public.activity_logs to authenticated;
-grant insert,update,delete on public.profiles,public.challenge_days,public.signals,public.withdrawals,public.day_closes,public.messages,public.private_messages,public.user_presence,public.app_state,public.notifications to authenticated;
-grant usage,select on all sequences in schema public to authenticated;
+create or replace function public.nexoventia_audit_row()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_row jsonb;
+  v_actor uuid;
+  v_id text;
+begin
+  v_row := case when TG_OP='DELETE' then to_jsonb(OLD) else to_jsonb(NEW) end;
+  v_actor := coalesce((select auth.uid()),nullif(coalesce(v_row->>'updated_by',v_row->>'created_by',v_row->>'closed_by',v_row->>'issued_by',v_row->>'user_id'),'')::uuid);
+  v_id := coalesce(v_row->>'id',v_row->>'day_no',v_row->>'key');
+  insert into public.activity_logs(actor_id,entity,entity_id,action)
+  values(v_actor,TG_TABLE_NAME,v_id,lower(TG_OP));
+  if TG_OP='DELETE' then return OLD; end if;
+  return NEW;
+end;
+$$;
+revoke all on function public.nexoventia_audit_row() from public, anon, authenticated;
+create trigger audit_signal_rows after insert or update or delete on public.signals
+for each row execute function public.nexoventia_audit_row();
+create trigger audit_withdrawal_rows after insert or update or delete on public.withdrawals
+for each row execute function public.nexoventia_audit_row();
+create trigger audit_day_close_rows after insert or update or delete on public.day_closes
+for each row execute function public.nexoventia_audit_row();
+
+create or replace function public.nexoventia_notify_members()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_title text;
+  v_body text;
+  v_kind text;
+  v_actor uuid;
+begin
+  if TG_TABLE_NAME='signals' then
+    if TG_OP='INSERT' then
+      v_title:=case when NEW.feed='official' then 'New official signal' else 'New demo signal' end;
+      v_body:=NEW.pair||' · '||NEW.direction||' · '||NEW.timeframe;
+      v_kind:='signal';
+      v_actor:=NEW.issued_by;
+    elsif TG_OP='UPDATE' and NEW.outcome is distinct from OLD.outcome and NEW.outcome<>'pending' then
+      v_title:='Signal result recorded';
+      v_body:=NEW.pair||' · '||upper(NEW.outcome);
+      v_kind:='result';
+      v_actor:=NEW.issued_by;
+    else return NEW; end if;
+  elsif TG_TABLE_NAME='withdrawals' and TG_OP='INSERT' then
+    v_title:='Withdrawal record added';
+    v_body:='$'||to_char(NEW.amount,'FM999999990.00');
+    v_kind:='withdrawal';
+    v_actor:=NEW.created_by;
+  elsif TG_TABLE_NAME='day_closes' and (TG_OP='INSERT' or (TG_OP='UPDATE' and NEW.closing_balance is distinct from OLD.closing_balance)) then
+    v_title:='Challenge day closed';
+    v_body:='Day '||NEW.day_no||' · closing balance $'||to_char(NEW.closing_balance,'FM999999990.00');
+    v_kind:='challenge';
+    v_actor:=NEW.closed_by;
+  elsif TG_TABLE_NAME='messages' and TG_OP='INSERT' and NEW.channel='updates' then
+    v_title:='Nexoventia update';
+    v_body:=case when length(NEW.body)>140 then left(NEW.body,137)||'...' else NEW.body end;
+    v_kind:='announcement';
+    v_actor:=NEW.user_id;
+  else return NEW; end if;
+
+  insert into public.notifications(user_id,title,body,kind)
+  select p.id,v_title,coalesce(v_body,''),v_kind
+  from public.profiles p
+  where p.id is distinct from v_actor;
+  return NEW;
+end;
+$$;
+revoke all on function public.nexoventia_notify_members() from public, anon, authenticated;
+create trigger notify_signal_events after insert or update on public.signals
+for each row execute function public.nexoventia_notify_members();
+create trigger notify_withdrawal_events after insert on public.withdrawals
+for each row execute function public.nexoventia_notify_members();
+create trigger notify_day_close_events after insert or update on public.day_closes
+for each row execute function public.nexoventia_notify_members();
+create trigger notify_update_messages after insert on public.messages
+for each row execute function public.nexoventia_notify_members();
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('nexoventia-media','nexoventia-media',false,52428800,array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','audio/mpeg','audio/webm','application/pdf'])
-on conflict(id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
-drop policy if exists nexoventia_media_read on storage.objects;
-create policy nexoventia_media_read on storage.objects for select to authenticated using(bucket_id='nexoventia-media');
-drop policy if exists nexoventia_media_insert on storage.objects;
-create policy nexoventia_media_insert on storage.objects for insert to authenticated with check(bucket_id='nexoventia-media' and (public.is_admin() or (storage.foldername(name))[1]=(select auth.uid())::text));
-drop policy if exists nexoventia_media_update on storage.objects;
-create policy nexoventia_media_update on storage.objects for update to authenticated using(bucket_id='nexoventia-media' and (public.is_admin() or owner_id=(select auth.uid())::text)) with check(bucket_id='nexoventia-media' and (public.is_admin() or owner_id=(select auth.uid())::text));
-drop policy if exists nexoventia_media_delete on storage.objects;
-create policy nexoventia_media_delete on storage.objects for delete to authenticated using(bucket_id='nexoventia-media' and (public.is_admin() or owner_id=(select auth.uid())::text));
+values('nexoventia-media','nexoventia-media',false,52428800,
+  array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','audio/mpeg','audio/webm','application/pdf'])
+on conflict(id) do update set public=false,file_size_limit=52428800,allowed_mime_types=excluded.allowed_mime_types;
+
+create policy "authenticated users read shared nexoventia media" on storage.objects
+for select to authenticated using(bucket_id='nexoventia-media');
+create policy "authenticated users upload own nexoventia media" on storage.objects
+for insert to authenticated with check(bucket_id='nexoventia-media' and (storage.foldername(name))[1]=(select auth.uid())::text);
+create policy "admins delete shared nexoventia media" on storage.objects
+for delete to authenticated using(bucket_id='nexoventia-media' and (select private.is_admin()));
+
+grant usage on schema public to authenticated;
+grant select,update on public.profiles to authenticated;
+grant select on public.challenge_days to authenticated;
+grant select,insert,update,delete on public.day_closes,public.signals,public.withdrawals,public.app_state to authenticated;
+grant select,insert,delete on public.messages to authenticated;
+grant select,insert on public.private_messages to authenticated;
+grant update(read_at) on public.private_messages to authenticated;
+grant select,insert,update,delete on public.user_presence to authenticated;
+grant select,insert,update on public.notifications to authenticated;
+grant select,insert on public.activity_logs to authenticated;
+grant usage,select on all sequences in schema public to authenticated;
 
 do $$
 begin
- if exists(select 1 from pg_publication where pubname='supabase_realtime') then
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='signals') then alter publication supabase_realtime add table public.signals;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='withdrawals') then alter publication supabase_realtime add table public.withdrawals;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='day_closes') then alter publication supabase_realtime add table public.day_closes;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='messages') then alter publication supabase_realtime add table public.messages;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='private_messages') then alter publication supabase_realtime add table public.private_messages;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='notifications') then alter publication supabase_realtime add table public.notifications;end if;
-  if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='app_state') then alter publication supabase_realtime add table public.app_state;end if;
- end if;
+  if exists(select 1 from pg_publication where pubname='supabase_realtime') then
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='signals') then alter publication supabase_realtime add table public.signals; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='withdrawals') then alter publication supabase_realtime add table public.withdrawals; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='day_closes') then alter publication supabase_realtime add table public.day_closes; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='messages') then alter publication supabase_realtime add table public.messages; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='private_messages') then alter publication supabase_realtime add table public.private_messages; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='app_state') then alter publication supabase_realtime add table public.app_state; end if;
+    if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='notifications') then alter publication supabase_realtime add table public.notifications; end if;
+  end if;
 end $$;
-
--- Owner promotion (run after the owner signs up, replacing the email):
--- update auth.users set raw_app_meta_data=coalesce(raw_app_meta_data,'{}'::jsonb)||'{"role":"admin"}'::jsonb where email='OWNER-EMAIL';
--- update public.profiles set role='admin' where id=(select id from auth.users where email='OWNER-EMAIL');
