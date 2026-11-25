@@ -34,8 +34,8 @@
 -- rooms are admin-published.
 --
 -- Private inbox:
--- A member may send only to a profile whose role is admin. Admins can message
--- an individual member. Member-to-member DMs are blocked by RLS.
+-- A member may send only to a public.profiles row with role='admin'. Admins
+-- can message an individual member. Member-to-member DMs are blocked by RLS.
 --
 -- Media:
 -- Bucket: nexoventia-media (private; 50 MB per object).
