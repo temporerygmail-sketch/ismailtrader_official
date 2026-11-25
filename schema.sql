@@ -1,64 +1,81 @@
--- NEXOVENTIA Trading Operations Hub — production reference snapshot
--- ACTIVE PROJECT: qxqdicbhsnrjibwgypyi
--- Region: ap-southeast-2 (Sydney)
--- This file documents the connected LIVE database model and December plan.
--- It is a reference snapshot, NOT a standalone migration. Do not execute it
--- against an existing database. Supabase migration history is the DDL source of truth.
+-- NEXOVENTIA Trading Operations Hub — LIVE DATABASE REFERENCE
+-- Supabase project: nexoventia-trading-hub
+-- Project ref: dbsgvcfvlnhwecyfsxib
+-- Region: ap-south-1 (Mumbai)
 --
--- Authorization:
--- Admin checks use private.is_admin(), a SECURITY DEFINER helper in the
--- non-exposed private schema. It reads public.profiles.role='admin'.
--- User-editable auth metadata is never an authorization source. Members
--- cannot change their own role; only an existing admin can promote a profile.
+-- IMPORTANT: This is a reference snapshot for review and validation.
+-- It is not a standalone migration and must not be executed over production.
+-- The authoritative DDL history is Supabase migration history.
+--
+-- Applied production migrations:
+-- 20261125101825 nexoventia_initial_schema
+-- 20261125101849 tighten_rls_and_fk_indexes
+-- 20261125102728 signup_username_and_member_notifications
+-- 20261125103044 add_initial_balance_setting
+-- 20261125104216 enforce_aal2_for_enrolled_mfa_users
+-- 20261125105653 move_mfa_policy_helper_to_private_schema
+-- 20261125111417 tighten_browser_role_privileges
+--
+-- Admin authorization:
+-- public.is_admin() is SECURITY INVOKER and reads only the trusted
+-- auth.jwt() -> 'app_metadata' ->> 'role' claim.
+-- The UI also requires profiles.role='admin'. User-editable user_metadata
+-- is never an authorization source. The owner bootstrap process updates
+-- auth.users.raw_app_meta_data and profiles.role, then refreshes the session.
 --
 -- MFA:
--- private.mfa_session_allowed() checks auth.mfa_factors. Users with a verified
--- factor must hold a JWT with aal='aal2'. Users without a verified factor may
--- use their normal authenticated session. Restrictive AAL2 policies cover all
--- public application tables and the private nexoventia-media storage bucket.
+-- private.mfa_session_allowed() is SECURITY DEFINER in the non-exposed
+-- private schema, has a pinned empty search_path, and can be executed by
+-- authenticated users only. Users with a verified TOTP factor require AAL2.
+-- RESTRICTIVE policies apply to all 11 public application tables and the
+-- private nexoventia-media storage bucket.
 --
--- Public tables with Row Level Security enabled:
+-- RLS-enabled public tables:
 -- profiles, challenge_days, signals, withdrawals, day_closes, messages,
--- private_messages, user_presence, app_state, notifications, activity_logs,
--- audit_log. The live private schema also contains private.is_admin() and
--- private.mfa_session_allowed().
+-- private_messages, user_presence, app_state, notifications, activity_logs.
 --
--- Shared read model:
--- challenge calendar, official/demo signal records, day closes, withdrawal
--- receipts, community posts and notifications are shared read-only to signed-in
--- members. Only the admin can publish signals/updates, record outcomes,
--- withdrawals, day closes and shared app state.
---
--- Community posting condition: channel='discussion' OR private.is_admin().
--- Members can post only in Discussion Group. Quetex Updates and both signal
--- rooms are admin-published.
+-- Shared access model:
+-- Members can read the challenge calendar, official/demo signal records,
+-- day closes, withdrawal receipts, shared room posts, and notifications.
+-- Only the admin can create/update/delete signals, withdrawals, day closes,
+-- and shared app state. Quetex Updates and both signal rooms are admin-only.
+-- Members can insert messages only when channel='discussion'; admins can
+-- publish to the Updates and signal rooms. Users may delete only their own
+-- Discussion Group messages; admins can moderate.
 --
 -- Private inbox:
--- A member may send only to a public.profiles row with role='admin'. Admins
--- can message an individual member. Member-to-member DMs are blocked by RLS.
+-- A member may send a private message only to a profile whose role='admin'.
+-- Admins may message individual members. Member-to-member DMs are blocked
+-- by the private_messages_insert_admin_route policy.
 --
--- Media:
--- Bucket: nexoventia-media (private; 50 MB per object).
--- Allowed types include JPEG, PNG, WebP, GIF, MP4, WebM, MP3, PDF.
--- Uploads are scoped to the signed-in user's folder; authenticated members
--- can read the shared archive, subject to MFA AAL2 enforcement when enrolled.
+-- Presence:
+-- Members upsert only their own user_presence row. The presence SELECT
+-- policy exposes the online directory to the admin, while members see self.
 --
--- Realtime publication:
--- signals, withdrawals, day_closes, messages, private_messages, app_state,
--- notifications. Database triggers create shared notifications and audit rows.
+-- Private media:
+-- Storage bucket: nexoventia-media (not public; 50 MB per object).
+-- Uploads are scoped to a user's folder; admin can manage shared signal and
+-- withdrawal evidence. Signed URLs are used for private media display.
 --
--- Least-privilege browser ACLs:
--- REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
--- REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
--- REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
--- Then the connected project grants only the operations needed by the frontend.
--- Neither anon nor authenticated has TRUNCATE privileges. New objects created
--- by the postgres migration owner do not inherit blanket browser-role grants.
+-- Least-privilege browser grants (migration 20261125111417):
+-- anon has no table, sequence or public-function privileges.
+-- authenticated receives only required table/column privileges.
+-- TRUNCATE is revoked from anon and authenticated on every public table.
+-- profiles.role is not updateable through the browser; profile edits are
+-- limited to display_name, username, avatar_path, bio and updated_at.
+-- public.is_admin() EXECUTE is granted to authenticated because RLS invokes it.
+-- Trigger functions remain callable by their trigger owner, not browser roles.
 --
--- December 2026 challenge plan.
--- Columns: day_no, calendar_date, target_min, target_max, planned_withdrawal,
---          is_rest_day, clarification_needed, admin_note.
--- Original user-provided values are retained exactly.
+-- Realtime publication includes signals, withdrawals, day_closes, messages,
+-- private_messages, app_state and notifications.
+-- Notification triggers broadcast signal/result, withdrawal, day-close and
+-- Updates events to the member notification table.
+--
+-- December 2026 challenge schedule (reference data; not executable INSERT SQL)
+-- Fields: day_no, calendar_date, target_min, target_max, planned_withdrawal,
+-- is_rest_day, clarification_needed, admin_note.
+-- Ranges on withdrawal days are pre-withdrawal targets. Day close is the
+-- actual remaining account balance after that day's withdrawal.
 (1,'2026-12-01',10,13,0,false,false,''),
 (2,'2026-12-02',13,17,0,false,false,''),
 (3,'2026-12-03',17,22,0,false,false,''),
@@ -70,7 +87,7 @@
 (9,'2026-12-09',28,35,0,false,false,''),
 (10,'2026-12-10',35,43,15,false,false,''),
 (11,'2026-12-11',28,35,0,false,false,''),
-(12,'2026-12-12',25,43,0,false,true,'User confirmation required: original range $25-$43.'),
+(12,'2026-12-12',25,43,0,false,true,'Original $25-$43 entry preserved. Confirm later; do not auto-correct.'),
 (13,'2026-12-13',43,52,17,false,false,''),
 (14,'2026-12-14',null,null,0,true,false,'Rest day'),
 (15,'2026-12-15',35,43,0,false,false,''),
@@ -89,8 +106,8 @@
 (28,'2026-12-28',null,null,0,true,false,'Rest day'),
 (29,'2026-12-29',73,85,0,false,false,''),
 (30,'2026-12-30',85,98,0,false,false,''),
-(31,'2026-12-31',98,112,82,false,false,'');
-
--- Totals: 31 dates; 28 active days; 3 rest days; 9 planned withdrawals = $226.
--- Day 12 is intentionally not normalized to another target range.
--- Day 31's $98-$112 target is pre-withdrawal. After the $82 withdrawal, the remaining actual account close is $16-$30; at the $112 target it is $30.
+(31,'2026-12-31',98,112,82,false,false,'Pre-withdrawal target; actual post-withdrawal close is $16-$30.');
+ 
+-- Totals: 31 calendar days; 28 active; 3 rest; 9 planned withdrawals = $226.
+-- Day 12 remains $25-$43. Day 31 $112 minus $82 = $30 remaining, if that
+-- upper pre-withdrawal target is reached. The app records only the actual close.
