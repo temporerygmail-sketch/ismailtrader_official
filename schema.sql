@@ -33,7 +33,7 @@
 --
 -- RLS-enabled public tables:
 -- profiles, challenge_days, signals, withdrawals, day_closes, messages,
--- private_messages, user_presence, app_state, notifications, activity_logs.
+-- private_messages, user_presence, app_state, notifications, audit_log, activity_logs.
 --
 -- Shared access model:
 -- Members can read the challenge calendar, official/demo signal records,
