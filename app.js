@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
 const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N0PmQ_WNX7Pqsa";
+const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KWN0PmQ_WNX7Pqsa";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
