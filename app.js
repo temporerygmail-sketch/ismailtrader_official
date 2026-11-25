@@ -1,9 +1,9 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
-const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
-const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0NPmQ_WNX7Pqsa";
+const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_SwNW0kTerjBWjfTNl6s_zw_Ra5YxmB1";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true, experimental: { recoveryCodes: true } }
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
 
 const app = document.getElementById("app");
@@ -15,7 +15,7 @@ const state = {
   communityMode: "discussion", selectedInboxUser: "", inboxMessages: [],
   replyTo: null, queuedFiles: [], mediaCache: {}, toastTimer: null,
   recording: null, recordingStream: null, theme: localStorage.getItem("nx-theme") || "dark",
-  mfaFactor: null, mfaQr: "", mfaSecret: "", mfaPendingFactor: null, mfaChallengeId: null, mfaBusy: false, mfaFactors: [], mfaUseRecovery: false, globalSearch: ""
+  mfaFactor: null, mfaQr: "", mfaSecret: "", mfaPendingFactor: null, mfaChallengeId: null, mfaBusy: false, mfaFactors: [], globalSearch: ""
 };
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
@@ -187,32 +187,44 @@ async function authChanged(session) {
 }
 async function renderMfaChallenge(){
   const factorOptions=state.mfaFactors.map(f=>'<option value="'+esc(f.id)+'" '+(f.id===state.mfaPendingFactor?"selected":"")+'>'+esc(f.friendly_name||"Authenticator device")+'</option>').join("");
-  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div class="eyebrow" style="margin-top:54px">ADDITIONAL SECURITY CHECK</div><h1>Verify your<br><em>authenticator.</em></h1><p>Two-factor authentication is enabled for this account. Enter the current six-digit code from your authenticator app to continue.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> TOTP verification required</span><span class="chip">Private session</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECOND FACTOR</span></div></div><div style="height:26px"></div><h2>Enter verification code</h2><p>Open your authenticator app and enter the current code. Do not share this code with anyone.</p>'+(state.mfaFactors.length>1?'<div class="field" style="margin-bottom:14px"><label>AUTHENTICATOR DEVICE</label><select id="mfaFactorSelect">'+factorOptions+'</select></div>':'')+'<form id="mfaLoginForm" class="auth-form"><div class="field"><label>6-DIGIT AUTHENTICATOR CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="000000"></div><button class="btn-primary" type="submit">Verify and continue</button></form><div class="auth-links"><span>Lost access to your authenticator?</span><button class="text-link" id="mfaRecoveryHelp">Account recovery</button></div><div class="hint" style="margin-top:14px">Register a backup authenticator on a separate device in Settings. Supabase does not issue recovery codes. Never send an OTP or password in a group chat.</div></div></section></div>';
+  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div class="eyebrow" style="margin-top:54px">ADDITIONAL SECURITY CHECK</div><h1>Verify your<br><em>authenticator.</em></h1><p>Two-factor authentication is enabled for this account. Enter the current six-digit code from one of your registered authenticator devices.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> TOTP verification required</span><span class="chip">Private session</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECOND FACTOR</span></div></div><div style="height:26px"></div><h2>Enter verification code</h2><p>Open the selected authenticator app and enter its current six-digit code. Do not share this code with anyone.</p>'+(state.mfaFactors.length>1?'<div class="field" style="margin-bottom:14px"><label>AUTHENTICATOR DEVICE</label><select id="mfaFactorSelect">'+factorOptions+'</select></div>':'')+'<form id="mfaLoginForm" class="auth-form"><div class="field"><label>6-DIGIT AUTHENTICATOR CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="000000"></div><button class="btn-primary" type="submit">Verify and continue</button></form><div class="hint" style="margin-top:14px">Lost access to one device? Select another verified authenticator registered to your account. Keep at least two devices enrolled and stored separately. If all registered devices are lost, contact the project owner for identity-verified account recovery.</div></div></section></div>';
   $("#mfaFactorSelect")?.addEventListener("change",async e=>{
     const selected=e.target.value;
     try{
-      const {data,error}=await supabase.auth.mfa.challenge({factorId:selected});if(error)throw error;
-      state.mfaPendingFactor=selected;state.mfaChallengeId=data.id;toast("A new challenge was prepared for that authenticator.");
+      const {data,error}=await supabase.auth.mfa.challenge({factorId:selected});
+      if(error)throw error;
+      state.mfaPendingFactor=selected;
+      state.mfaChallengeId=data.id;
+      toast("A new challenge was prepared for that authenticator.");
     }catch(error){showError(error)}
   });
   $("#mfaLoginForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
     if(state.mfaBusy)return;
     const codeValue=String(new FormData(e.currentTarget).get("code")||"").trim();
-    if(state.mfaUseRecovery ? codeValue.length<8 : !/^[0-9]{6}$/.test(codeValue)){toast(state.mfaUseRecovery?"Enter a valid recovery code.":"Enter a valid six-digit code.","error");return;}
+    if(!/^[0-9]{6}$/.test(codeValue)){toast("Enter a valid six-digit authenticator code.","error");return;}
     state.mfaBusy=true;
-    const button=e.currentTarget.querySelector("button");button.disabled=true;button.textContent="Verifying…";
+    const button=e.currentTarget.querySelector("button");
+    button.disabled=true;
+    button.textContent="Verifying…";
     try{
-      const verification=state.mfaUseRecovery ? await supabase.auth.mfa.recoveryCodes.verify({code:codeValue}) : await supabase.auth.mfa.verify({factorId:state.mfaPendingFactor,challengeId:state.mfaChallengeId,code:codeValue});
-      const {error}=verification;
+      const {error}=await supabase.auth.mfa.verify({
+        factorId:state.mfaPendingFactor,
+        challengeId:state.mfaChallengeId,
+        code:codeValue
+      });
       if(error)throw error;
-      state.mfaPendingFactor=null;state.mfaChallengeId=null;state.mfaUseRecovery=false;
-      const {data,error:getError}=await supabase.auth.getSession();if(getError)throw getError;
+      state.mfaPendingFactor=null;
+      state.mfaChallengeId=null;
+      const {data,error:getError}=await supabase.auth.getSession();
+      if(getError)throw getError;
       await authChanged(data.session);
-    }catch(error){showError(error);button.disabled=false;button.textContent="Verify and continue"}
-    finally{state.mfaBusy=false}
+    }catch(error){
+      showError(error);
+      button.disabled=false;
+      button.textContent="Verify and continue";
+    }finally{state.mfaBusy=false}
   });
-  $("#mfaRecoveryHelp")?.addEventListener("click",()=>{state.mfaUseRecovery=!state.mfaUseRecovery;const form=$("#mfaLoginForm");const label=$("label",form);const input=$("input",form);if(label)label.textContent=state.mfaUseRecovery?"SINGLE-USE RECOVERY CODE":"6-DIGIT AUTHENTICATOR CODE";if(input){input.value="";input.placeholder=state.mfaUseRecovery?"Enter saved recovery code":"000000";if(state.mfaUseRecovery){input.removeAttribute("inputmode");input.removeAttribute("pattern");input.removeAttribute("maxlength");input.autocomplete="off"}else{input.inputMode="numeric";input.pattern="[0-9]{6}";input.maxLength=6;input.autocomplete="one-time-code"}}$("#mfaRecoveryHelp").textContent=state.mfaUseRecovery?"Use authenticator code":"Use recovery code";});
 }
 
 supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>authChanged(session),0)});
@@ -585,7 +597,7 @@ function renderSettings() {
   '<div class="grid grid-2"><section class="panel panel-pad"><div class="section-row" style="margin:0 0 15px"><div><h3>Public profile</h3><p>Members see your display name and username</p></div><span class="tag">'+(state.isAdmin?"ADMIN":"MEMBER")+'</span></div><form id="profileForm" class="form-grid"><div class="field full"><label>PROFILE PHOTO</label><input name="avatar" type="file" accept="image/png,image/jpeg,image/webp"></div><div class="field full"><label>DISPLAY NAME</label><input name="display_name" required maxlength="80" value="'+esc(p.display_name)+'"></div><div class="field full"><label>USERNAME</label><input name="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" value="'+esc(p.username||"")+'"></div><div class="field full"><label>BIO</label><textarea name="bio" maxlength="240">'+esc(p.bio||"")+'</textarea></div><div class="field full"><button class="btn-primary" type="submit">Save profile</button></div></form></section>'+
   '<section class="panel panel-pad"><h3 class="panel-title">Appearance</h3><p class="panel-sub">Choose the workspace theme for this device.</p><div class="inline-actions" style="margin-top:16px"><button class="btn-subtle" data-theme="dark">Dark terminal</button><button class="btn-subtle" data-theme="light">Light studio</button></div><div class="divider"></div><h3 class="panel-title">Notifications</h3><p class="panel-sub">Allow browser notifications while this browser is available. Offline push requires extra server configuration.</p><button class="btn-primary btn-small" id="enableNotifications" style="margin-top:12px">Enable browser notifications</button><div class="divider"></div><h3 class="panel-title">Install app</h3><p class="panel-sub">Add Nexoventia to your Android home screen or desktop app launcher.</p><button class="btn-subtle btn-small" id="installPwa" style="margin-top:12px">Install Nexoventia</button></section></div>'+
   '<div class="grid grid-2" style="margin-top:15px"><section class="panel panel-pad"><h3 class="panel-title">Password</h3><p class="panel-sub">Use a strong, unique password for your account.</p><form id="passwordForm" class="form-grid" style="margin-top:15px"><div class="field full"><label>NEW PASSWORD</label><input name="password" type="password" minlength="8" required placeholder="At least 8 characters"></div><div class="field full"><button class="btn-subtle" type="submit">Update password</button></div></form></section>'+
-  '<section class="panel panel-pad"><h3 class="panel-title">Two-factor authentication</h3><p class="panel-sub">Use an authenticator app for an additional sign-in challenge, where Supabase MFA is enabled for this project.</p><div id="mfaArea" style="margin-top:14px">'+(state.mfaFactors.length?'<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">Add a backup authenticator and save single-use recovery codes in a password manager.</p><div class="inline-actions"><button class="btn-subtle btn-small" id="startMfa">Add backup authenticator</button><button class="btn-subtle btn-small" id="generateRecoveryCodes">Generate recovery codes</button><button class="btn-subtle btn-small" id="replaceRecoveryCodes">Replace recovery codes</button></div>':'<button class="btn-subtle btn-small" id="startMfa">Set up authenticator</button>')+'</div></section></div>'+
+  '<section class="panel panel-pad"><h3 class="panel-title">Two-factor authentication</h3><p class="panel-sub">Use an authenticator app for an additional sign-in challenge, where Supabase MFA is enabled for this project.</p><div id="mfaArea" style="margin-top:14px">'+(state.mfaFactors.length?'<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">Keep at least two verified authenticator devices registered separately. Supabase supports multiple TOTP factors; it does not provide recovery-code APIs.</p><div class="inline-actions"><button class="btn-subtle btn-small" id="startMfa">Add backup authenticator</button></div>':'<button class="btn-subtle btn-small" id="startMfa">Set up authenticator</button>')+'</div></section></div>'+
   '<section class="panel panel-pad" style="margin-top:15px"><div class="signal-head"><div><h3 class="panel-title">Session & privacy</h3><p class="panel-sub">Your account uses Supabase Auth. Public clients never receive database service-role credentials.</p></div><button class="btn-danger btn-small" id="signOut">'+icon("logout")+' Sign out</button></div><div class="divider"></div><div class="grid grid-3"><div><div class="mono">ACCOUNT CREATED</div><strong style="display:block;margin-top:8px">'+fmtDate(p.created_at)+'</strong></div><div><div class="mono">LOGIN EMAIL</div><strong style="display:block;margin-top:8px;overflow-wrap:anywhere">'+esc(state.user.email)+'</strong></div><div><div class="mono">ROLE</div><strong style="display:block;margin-top:8px">'+(state.isAdmin?"Owner / Admin":"Member")+'</strong></div></div></section>'+
   '<div class="alert info" style="margin-top:15px">For account deletion or data export, contact the project owner first. Your personal message and session data are protected by row-level security.</div>';
 }
@@ -696,8 +708,6 @@ function bindPageEvents() {
   $("#enableNotifications")?.addEventListener("click",enableNotifications);
   $("#installPwa")?.addEventListener("click",installPwa);
   $("#startMfa")?.addEventListener("click",startMfa);
-  $("#generateRecoveryCodes")?.addEventListener("click",()=>showRecoveryCodes(false));
-  $("#replaceRecoveryCodes")?.addEventListener("click",()=>showRecoveryCodes(true));
   loadAudit();
 }
 async function sendChatMessage() {
@@ -767,25 +777,6 @@ async function installPwa() {
   if(deferredInstall){deferredInstall.prompt();const choice=await deferredInstall.userChoice;deferredInstall=null;toast(choice.outcome==="accepted"?"Install started.":"Install cancelled.");return}
   toast("In Chrome, open the browser menu and choose Install app or Add to Home screen.");
 }
-async function showRecoveryCodes(regenerate=false){
-  if(!state.user)return;
-  if(regenerate&&!confirm("Replace all existing recovery codes? Every unused old code will stop working immediately."))return;
-  try{
-    const result=regenerate
-      ? await supabase.auth.mfa.recoveryCodes.regenerate()
-      : await supabase.auth.mfa.recoveryCodes.generate({friendlyName:"Nexoventia account recovery"});
-    if(result.error)throw result.error;
-    const codes=result.data?.codes||[];
-    if(!codes.length)throw new Error("No recovery codes were returned. Check that recovery-code support is enabled.");
-    showModal(regenerate?"New recovery codes":"Your recovery codes",
-      '<div class="alert info">These codes are displayed once. Save them in a password manager or another secure offline location. Each code can be used once.</div><div class="recovery-code-list">'+codes.map(c=>'<code>'+esc(c)+'</code>').join("")+'</div><div class="inline-actions" style="margin-top:14px"><button class="btn-primary" id="copyRecoveryCodes">Copy all codes</button><button class="btn-subtle" id="confirmRecoverySaved">I saved these codes</button></div>');
-    $("#copyRecoveryCodes")?.addEventListener("click",async()=>{
-      try{await navigator.clipboard.writeText(codes.join("\n"));toast("Recovery codes copied. Save them securely.")}
-      catch(error){showError(error)}
-    });
-    $("#confirmRecoverySaved")?.addEventListener("click",()=>{closeModal();toast("Recovery codes will not be shown again. Keep your saved copy safe.")});
-  }catch(error){showError(error)}
-}
 async function startMfa() {
   const area=$("#mfaArea");if(!area)return;
   try{
@@ -802,7 +793,7 @@ async function startMfa() {
       if(factorError)throw factorError;
       state.mfaFactors=(factors?.totp||[]).filter(f=>f.status==="verified");
       toast("Authenticator verified. Add a second device as a backup.");
-      area.innerHTML='<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">Add a backup authenticator and save single-use recovery codes in a password manager.</p><div class="inline-actions"><button class="btn-subtle btn-small" id="addBackupMfa">Add backup authenticator</button><button class="btn-subtle btn-small" id="generateRecoveryCodes">Generate recovery codes</button><button class="btn-subtle btn-small" id="replaceRecoveryCodes">Replace recovery codes</button></div>';
+      area.innerHTML='<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">This authenticator is verified. Register a second device and keep it separate as a backup.</p><div class="inline-actions"><button class="btn-subtle btn-small" id="addBackupMfa">Add backup authenticator</button></div>';
       $("#addBackupMfa")?.addEventListener("click",startMfa);
     });
   }catch(error){showError(error);area.innerHTML='<button class="btn-subtle btn-small" id="startMfa">Retry authenticator setup</button>';$("#startMfa")?.addEventListener("click",startMfa)}
