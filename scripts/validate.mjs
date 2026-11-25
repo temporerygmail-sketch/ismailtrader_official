@@ -56,7 +56,7 @@ assert.match(app,/supabase\.auth\.mfa\.verify/,"TOTP verification required");
 assert.match(app,/supabase\.auth\.mfa\.enroll/,"TOTP enrollment required");
 assert.match(app,/Nexoventia Backup/,"Backup authenticator enrollment required");
 assert.doesNotMatch(app,/recoveryCodes/i,"Unsupported recovery-code endpoint must not be called");
-assert.match(app,/state\.isAdmin=state\.profile\?\.role==="admin"\s*\|\|\s*state\.user\.app_metadata\?\.role==="admin"/,"UI must recognise trusted profile and app_metadata admin claims");
+assert.match(app,/state\.isAdmin=state\.profile\?\.role==="admin"\s*&&\s*state\.user\.app_metadata\?\.role==="admin"/,"UI must require matching profile and trusted app_metadata admin claims");
 assert.match(app,/async function sendChatMessage/,"Discussion sender required");
 assert.match(app,/function renderCommunity/,"Community view required");
 assert.match(app,/Quetex Official Signals/,"Official signal room required");
