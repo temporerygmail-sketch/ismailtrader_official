@@ -654,7 +654,7 @@ function bindPageEvents() {
   $("#startMfa")?.addEventListener("click",startMfa);
   loadAudit();
 }
-async function sendChatMessage() {
+async async function sendChatMessage() {
   const input=$("#chatText");if(!input)return;
   const body=input.value.trim(),files=state.queuedFiles;
   if(!body&&!files.length){toast("Write a message or attach a file.","error");return}
