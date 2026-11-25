@@ -242,13 +242,28 @@ function renderPage() {
 function closedFor(dayNo){return state.closes.find(c=>Number(c.day_no)===Number(dayNo));}
 function withdrawalsForDay(dayNo){return state.withdrawals.filter(w=>Number(w.day_no)===Number(dayNo)).reduce((s,w)=>s+Number(w.amount),0);}
 function pnlRows(){
-  let previous=10;
-  return [...state.closes].sort((a,b)=>a.day_no-b.day_no).map(c=>{
-    const wd=withdrawalsForDay(c.day_no),close=Number(c.closing_balance),pnl=close+wd-previous;
-    const day=state.days.find(d=>d.day_no===c.day_no);
-    const row={...c,opening_balance:previous,withdrawn:wd,net_result:pnl,calendar_date:day?.calendar_date};
-    previous=close;return row;
-  });
+  let carriedBalance=10;
+  let balanceKnown=true;
+  const closeByDay=new Map(state.closes.map(c=>[Number(c.day_no),c]));
+  const rows=[];
+  for(const day of state.days){
+    const close=closeByDay.get(Number(day.day_no));
+    const withdrawn=withdrawalsForDay(day.day_no);
+    if(close){
+      const opening=balanceKnown?carriedBalance:null;
+      const closing=Number(close.closing_balance);
+      const netResult=opening===null?null:closing+withdrawn-opening;
+      rows.push({...close,opening_balance:opening,withdrawn,net_result:netResult,calendar_date:day.calendar_date});
+      carriedBalance=closing;
+      balanceKnown=true;
+    }else if(day.is_rest_day){
+      if(balanceKnown&&withdrawn>0)carriedBalance-=withdrawn;
+    }else{
+      // An unclosed active day makes the next opening balance unknown.
+      balanceKnown=false;
+    }
+  }
+  return rows;
 }
 function rangeStats(period) {
   const pRows=filterDateRows(pnlRows(),"closed_at",period);
@@ -446,7 +461,7 @@ function renderAnalytics() {
   '<div class="grid grid-2" style="margin-top:15px"><div class="panel panel-pad"><div class="section-row" style="margin:0 0 6px"><div><h3>Actual balance history</h3><p>Each mark comes from an admin day-close entry</p></div></div>'+chartSvg(sorted)+'</div><div class="panel panel-pad"><h3 class="panel-title">Challenge completion</h3><p class="panel-sub">28 active days; three rest days are not counted as missed closes.</p><div class="metric-value">'+completed+' / '+active+'</div><div class="progress-track"><div class="progress-fill" style="width:'+(completed/active*100)+'%"></div></div><div class="divider"></div><div class="grid grid-2"><div><div class="mono">BEST RECORDED DAY</div><div style="font-weight:800;margin-top:8px">'+(best?"Day "+best.day_no+" · "+money(best.net_result):"—")+'</div></div><div><div class="mono">LOWEST RECORDED DAY</div><div style="font-weight:800;margin-top:8px">'+(worst?"Day "+worst.day_no+" · "+money(worst.net_result):"—")+'</div></div></div></div></div>'+
   '<div class="section-row"><div><h3>Daily P/L breakdown</h3><p>Opening balance + net result − withdrawal = closing balance</p></div></div>'+
   (s.pRows.length?'<div class="panel table-scroll"><table class="data-table"><thead><tr><th>DAY</th><th>OPENING</th><th>WITHDRAWN</th><th>NET RESULT</th><th>CLOSING</th></tr></thead><tbody>'+s.pRows.map(r=>'<tr><td>Day '+r.day_no+'</td><td>'+money(r.opening_balance)+'</td><td>'+money(r.withdrawn)+'</td><td class="'+(r.net_result>=0?"positive":"negative")+'">'+money(r.net_result)+'</td><td>'+money(r.closing_balance)+'</td></tr>').join("")+'</tbody></table></div>':empty("No closing records","Analytics will populate as the admin closes each day.","chart"))+
-  '<div class="alert info" style="margin-top:15px">A missing close is left blank. The app does not invent a profit/loss number or infer a result from the planned target.</div>';
+  '<div class="alert info" style="margin-top:15px">A missing active-day close makes the next opening balance unknown. That day’s P/L stays blank until the owner records a verified close; no result is inferred from the target.</div>';
 }
 function renderAdmin() {
   if(!state.isAdmin)return empty("Admin only","This control room is restricted to the Nexoventia owner.","lock");
