@@ -4,9 +4,10 @@
 
 - GitHub repository: https://github.com/temporerygmail-sketch/ismailtrader_official
 - Live app: https://temporerygmail-sketch.github.io/ismailtrader_official/
-- Supabase project ref: qxqdicbhsnrjibwgypyi
-- Supabase region: ap-southeast-2 (Sydney)
-- Supabase API URL: https://qxqdicbhsnrjibwgypyi.supabase.co
+- Supabase project: nexoventia-trading-hub
+- Supabase project ref: dbsgvcfvlnhwecyfsxib
+- Supabase region: ap-south-1 (Mumbai)
+- Supabase API URL: https://dbsgvcfvlnhwecyfsxib.supabase.co
 
 The production database is already initialized with the December challenge, member profiles, signals, withdrawals, day closes, community, private inbox, notifications, presence and private media. Application tables have RLS enabled. Do not execute schema.sql; it is a reference snapshot, not a migration.
 
@@ -31,7 +32,7 @@ In **Authentication → Sign In / Providers → Email**, make sure:
 
 After signup, check Inbox and Spam/Junk for the confirmation email. Supabase's default sender is intended only for limited testing; dependable delivery requires a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of this repository and frontend files.
 
-Google sign-in is currently hidden in the app. Email/password is the supported login and signup method.
+Google sign-in is currently hidden because the Google provider is not enabled in the connected Supabase project. Email/password is the supported login and signup method. Do not show Google as an available sign-in method until its OAuth Client ID and Secret are configured in Supabase.
 
 ## 2. Create your owner account
 
@@ -49,15 +50,21 @@ The database trigger automatically creates your public.profiles row after Auth c
 After your first account has been created and confirmed, open **Supabase Dashboard → SQL Editor** and run this SQL after replacing the placeholder with the exact email you registered:
 
 ```sql
-update public.profiles p
-set role = 'admin',
-    updated_at = now()
-from auth.users u
-where p.id = u.id
-  and lower(u.email) = lower('YOUR-OWNER-EMAIL@example.com');
+update auth.users
+set raw_app_meta_data =
+  coalesce(raw_app_meta_data, '{}'::jsonb)
+  || jsonb_build_object('role', 'admin')
+where lower(email) = lower('YOUR-OWNER-EMAIL@example.com');
+
+update public.profiles
+set role = 'admin', updated_at = now()
+where id = (
+  select id from auth.users
+  where lower(email) = lower('YOUR-OWNER-EMAIL@example.com')
+);
 ```
 
-Sign out completely, then sign in again. Admin Control should appear. The database helper private.is_admin() checks the current authenticated user's public.profiles.role = 'admin'. The app uses the same profile role for admin UI visibility.
+Sign out completely, then sign in again. Admin Control should appear. The database helper public.is_admin() checks the trusted auth.users app_metadata role claim. The app also checks public.profiles.role. Both values must be set to admin; this SQL updates both.
 
 Promote only your own account. User-editable metadata is not used for authorization. The profile role is protected from browser-side changes by database grants and Row Level Security. Never share your password, email confirmation link, authenticator code or owner session.
 
@@ -77,7 +84,7 @@ Online status uses a recent presence heartbeat while the app is open. It indicat
 
 - **Quetex Updates:** admin publishes; members view.
 - **Quetex Official Signals:** admin publishes the pair, timeframe, direction, amount, expiry and before image; after expiry, the admin records Win/Loss/Refund and an after image. Members view the shared Notes archive.
-- **Market Checking · Demo Signals:** admin publishes demo-learning records; members view.
+- **Market Checking · Demo Signals:** removed from the app interface; existing historical rows, if any, are not deleted from the database.
 - **Discussion Group:** signed-in users can post supported text and media (subject to file type/size limits).
 - **Private inbox:** each member can message the admin; the admin can message each member. Members cannot message other members.
 - **Online directory:** admin only.
