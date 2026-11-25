@@ -40,3 +40,5 @@ assert.equal(manifest.display, "standalone", "PWA must use standalone display");
 
 console.log("NEXOVENTIA VALIDATION PASSED");
 console.log("31 challenge rows; 28 active; 3 rest; 9 withdrawals totaling $226; Day 12 preserved; RLS, role boundaries, auth, search, PWA and UI checks passed.");
+
+// CI trigger verification commit.
