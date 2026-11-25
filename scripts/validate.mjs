@@ -30,19 +30,20 @@ assert.deepEqual({min:days[11].min,max:days[11].max,flag:days[11].clarification}
 assert.deepEqual({min:days[30].min,max:days[30].max,withdrawal:days[30].withdrawal},{min:98,max:112,withdrawal:82},"Day 31 target and withdrawal must remain unchanged");
 assert.equal(112-82,30,"Day 31 leaves $30 only when the $112 upper target is reached");
 
-assert.ok(schema.includes("dbsgvcfvlnhwecyfsxib"),"Schema reference must match active Supabase project");
-assert.ok(schema.includes("ap-south-1"),"Schema reference must match active project region");
-assert.ok(schema.includes("public.is_admin()"),"Trusted JWT admin helper must be documented");
+assert.ok(schema.includes("qxqdicbhsnrjibwgypyi"),"Schema reference must match active Supabase project");
+assert.ok(schema.includes("ap-southeast-2"),"Schema reference must match active project region");
+assert.ok(schema.includes("private.is_admin()"),"Private database admin helper must be documented");
 assert.ok(schema.includes("private.mfa_session_allowed()"),"MFA helper must be documented");
 assert.ok(schema.includes("nexoventia-media"),"Private media bucket must be documented");
-for(const table of ["profiles","challenge_days","signals","withdrawals","day_closes","messages","private_messages","user_presence","app_state","notifications","activity_logs"]) {
+for(const table of ["profiles","challenge_days","signals","withdrawals","day_closes","messages","private_messages","user_presence","app_state","notifications","audit_log","activity_logs"]) {
   assert.match(schema,new RegExp("\\b"+table+"\\b","i"),table+" must be documented");
 }
+assert.doesNotMatch(schema,/dbsgvcfvlnhwecyfsxib|ap-south-1|public\.is_admin\(\)|app_metadata/i,"Schema snapshot must not contain the superseded backend/auth design");
 
-assert.ok(app.includes('const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";'),"Frontend must target the connected Supabase project");
+assert.ok(app.includes('const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";'),"Frontend must target the connected Supabase project");
 assert.match(app,/const SUPABASE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/,"Frontend must use a publishable key");
-assert.doesNotMatch(app,/qxqdicbhsnrjibwgypyi|service_role|sb_secret_/i,"No stale project ref or server secret may ship");
-assert.ok(app.includes('state.isAdmin=state.profile?.role==="admin" && state.user.app_metadata?.role==="admin";'),"Admin UI must match trusted JWT claim and protected profile role");
+assert.doesNotMatch(app,/dbsgvcfvlnhwecyfsxib|service_role|sb_secret_/i,"No stale project ref or server secret may ship");
+assert.ok(app.includes('state.isAdmin=state.profile?.role==="admin";'),"Admin UI must read the protected profile role");
 for(const feature of [
   "signInWithPassword","signUp(","signInWithOAuth",'provider:"google"',"resetPasswordForEmail",
   "supabase.auth.mfa.enroll","supabase.auth.mfa.challenge","supabase.auth.mfa.verify",
@@ -50,9 +51,10 @@ for(const feature of [
   "function renderCommunity","function renderInbox","function renderNotifications","function renderAnalytics",
   "function renderAdmin","function renderSettings","function resultModal","next_signal_at","nexoventia-media",
   "Asia/Karachi","15 days"
-]) assert.ok(app.includes(feature),"Required feature missing: "+feature);
+]) assert.ok(app.includes(feature),"Required app feature missing: "+feature);
 assert.ok(app.includes('renderSignalSnapshot("Today","today")'),"Daily signal snapshot required");
 assert.ok(app.includes('renderSignalSnapshot("This week","week")'),"Weekly signal snapshot required");
+assert.ok(app.includes('renderSignalSnapshot("15 days","15d")'),"15-day signal snapshot required");
 assert.ok(app.includes('renderSignalSnapshot("All time","all")'),"All-time signal snapshot required");
 assert.doesNotMatch(app,/Risk Manager|data-page="risk"/i,"Risk Manager module must remain removed");
 
@@ -62,17 +64,18 @@ assert.match(css,/prefers-reduced-motion/);
 assert.match(css,/@keyframes drift/);
 assert.match(css,/signal-snapshot/);
 assert.match(css,/@media\s*\(max-width:\s*560px\)/);
-assert.ok(sw.includes("nexoventia-shell-v7"),"PWA cache must be versioned after backend fix");
+assert.ok(sw.includes("nexoventia-shell-v7"),"PWA cache version must be v7");
 assert.equal(manifest.display,"standalone","PWA should launch in standalone mode");
 
 for(const doc of [readme,setup]) {
-  assert.ok(doc.includes("dbsgvcfvlnhwecyfsxib"),"Documentation must use the active Supabase project");
-  assert.doesNotMatch(doc,/qxqdicbhsnrjibwgypyi|ap-southeast-2/i,"Documentation must not mention the old backend");
+  assert.ok(doc.includes("qxqdicbhsnrjibwgypyi"),"Documentation must use the active Supabase project");
+  assert.doesNotMatch(doc,/dbsgvcfvlnhwecyfsxib|ap-south-1/i,"Documentation must not mention the old backend");
 }
-assert.ok(setup.includes("public.is_admin()"),"Owner guide must match database authorization");
+assert.ok(readme.includes("Today/Weekly/15 days/All summaries"),"README must document dashboard periods");
+assert.ok(setup.includes("private.is_admin()"),"Owner guide must match database authorization");
 assert.ok(setup.includes("Google Client ID and Client Secret"),"Google OAuth setup must be documented");
-assert.ok(setup.includes("dbsgvcfvlnhwecyfsxib.supabase.co/auth/v1/callback"),"OAuth callback must target active project");
-assert.ok(setup.includes("raw_app_meta_data"),"Owner bootstrap must set trusted app metadata");
+assert.ok(setup.includes("qxqdicbhsnrjibwgypyi.supabase.co/auth/v1/callback"),"Google callback must target active project");
+assert.doesNotMatch(setup,/raw_app_meta_data|app_metadata|public\.is_admin\(\)/i,"Owner guide must not describe superseded authorization");
 
 console.log("NEXOVENTIA VALIDATION PASSED");
-console.log("Plan integrity, withdrawals, closing-balance arithmetic, Supabase connection, role checks, MFA, auth, community, analytics and PWA assets passed.");
+console.log("31-day schedule, withdrawals, day-close arithmetic, connected backend, database role mapping, MFA, authentication, community, analytics and PWA assets passed.");
