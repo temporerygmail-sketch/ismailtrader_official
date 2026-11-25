@@ -382,7 +382,7 @@ function renderSignalFeed(feed) {
   const period=state.activePeriod;
   const stats=signalStats(feed,period);
   const isOfficial=feed==="official";
-  const title=isOfficial?"Quetex Official Signals":"Market Checking · Demo Signals";
+  const title=isOfficial?"QUOTEX_OFFICIAL SIGNALS":"Market Checking · Demo Signals";
   const desc=isOfficial?"Read-only signal history shared with every member, including timestamps and result evidence.":"Educational market-checking practice records. No real trade is placed from this board.";
   return pageHead(isOfficial?"OFFICIAL RECORDS":"DEMO SIGNAL ROOM",title,desc)+
   '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>Historical outcomes; refunds excluded from the win-rate calculation</p></div>'+periodTabs(state.activePeriod)+'</div>'+
@@ -654,7 +654,7 @@ function bindPageEvents() {
   $("#startMfa")?.addEventListener("click",startMfa);
   loadAudit();
 }
-async async function sendChatMessage() {
+async function sendChatMessage() {
   const input=$("#chatText");if(!input)return;
   const body=input.value.trim(),files=state.queuedFiles;
   if(!body&&!files.length){toast("Write a message or attach a file.","error");return}
