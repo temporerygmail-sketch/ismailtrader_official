@@ -5,9 +5,9 @@
 - GitHub repository: https://github.com/temporerygmail-sketch/ismailtrader_official
 - Live app: https://temporerygmail-sketch.github.io/ismailtrader_official/
 - Supabase project: `nexoventia-trading-hub`
-- Supabase ref: `dbsgvcfvlnhwecyfsxib`
-- Supabase region: `ap-south-1` (Mumbai)
-- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
+- Supabase ref: `qxqdicbhsnrjibwgypyi`
+- Supabase region: `ap-southeast-2` (Sydney)
+- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
 
 The live Supabase database is already initialized with the December challenge, member profiles, signals, withdrawals, day closes, community, private inbox, notifications, presence and private media. All application tables have RLS enabled. Do not execute `schema.sql`: it is a reference snapshot, not a migration.
 
@@ -20,23 +20,18 @@ The live Supabase database is already initialized with the December challenge, m
 5. In Supabase Dashboard → SQL Editor, replace the placeholder email with the exact email you registered and run:
 
 ```sql
-update auth.users
-set raw_app_meta_data =
-  coalesce(raw_app_meta_data, '{}'::jsonb)
-  || jsonb_build_object('role', 'admin')
-where lower(email) = lower('YOUR-OWNER-EMAIL@example.com');
-
 update public.profiles
 set role = 'admin', updated_at = now()
 where id = (
-  select id from auth.users
+  select id
+  from auth.users
   where lower(email) = lower('YOUR-OWNER-EMAIL@example.com')
 );
 ```
 
-6. Sign out completely and sign in again. The refreshed session now contains the trusted `app_metadata.role=admin` claim and matching `profiles.role=admin`; Admin Control will appear.
+6. Sign out completely and sign in again. Admin Control will appear after the app reloads your updated profile role.
 
-Promote only your own account. The database's `public.is_admin()` function checks the trusted JWT `app_metadata` claim. The UI requires both the profile role and trusted app metadata. User-editable `user_metadata` is not an authorization source. Do not share your password, authenticator code or owner session.
+Promote only your own account. The database's private `private.is_admin()` helper checks `public.profiles.role = 'admin'`. The role column is protected by database grants and Row Level Security; members cannot change their own role from the app. Authorization does not rely on user-editable profile metadata. Do not share your password, authenticator code or owner session.
 
 ## 2. Configure email confirmation and password reset
 
@@ -54,7 +49,7 @@ The Google button is already present. Google sign-in requires a Google Client ID
 
 1. In Google Cloud Console, create an OAuth Client ID of type **Web application**.
 2. Add Authorized JavaScript origin: `https://temporerygmail-sketch.github.io`.
-3. Add Authorized redirect URI: `https://dbsgvcfvlnhwecyfsxib.supabase.co/auth/v1/callback`.
+3. Add Authorized redirect URI: `https://qxqdicbhsnrjibwgypyi.supabase.co/auth/v1/callback`.
 4. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Client ID and Client Secret.
 5. In Supabase Authentication → URL Configuration, ensure the GitHub Pages app URL is in Redirect URLs.
 
