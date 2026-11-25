@@ -69,3 +69,23 @@ button,.btn{border:1px solid var(--line2);background:linear-gradient(135deg,rgba
   .alert{color:#333!important;background:#fff!important;border:1px solid #ddd!important}
   .chart-wrap,.signal-snapshot{break-inside:avoid}
 }
+
+
+/* NEXOVENTIA graphic-only sticker tray */
+.sticker-tray{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:12px 14px;border-top:1px solid var(--line);background:rgba(9,15,30,.68)}
+.sticker-tray[hidden]{display:none}
+.sticker-choice{display:flex;align-items:center;gap:9px;min-width:0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);color:var(--text);cursor:pointer;text-align:left;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.sticker-choice:hover{transform:translateY(-2px);border-color:var(--cyan);background:rgba(83,224,213,.07)}
+.sticker-choice:disabled{opacity:.55;cursor:wait}
+.sticker-choice>span{display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border-radius:9px;background:rgba(109,129,255,.12);color:var(--cyan)}
+.sticker-choice>span svg{width:16px;height:16px}
+.sticker-choice b{font-size:10px;letter-spacing:.02em;line-height:1.3}
+.nexo-sticker{display:inline-flex;align-items:center;gap:11px;min-width:220px;max-width:100%;padding:12px 14px;border:1px solid rgba(111,222,216,.28);border-radius:14px;background:linear-gradient(130deg,rgba(53,73,122,.26),rgba(16,35,52,.64));box-shadow:inset 0 1px rgba(255,255,255,.05)}
+.nexo-sticker-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(90,221,212,.1);color:var(--cyan)}
+.nexo-sticker-icon svg{width:22px;height:22px}
+.nexo-sticker strong,.nexo-sticker small{display:block}
+.nexo-sticker strong{font:700 10px 'DM Mono',monospace;letter-spacing:.1em}
+.nexo-sticker small{margin-top:4px;font-size:9px;color:var(--muted);letter-spacing:.04em}
+.nexo-sticker-mark{margin-left:auto;font:800 11px 'DM Mono',monospace;color:rgba(162,178,255,.72);letter-spacing:.12em}
+@media(max-width:760px){.sticker-tray{grid-template-columns:repeat(2,minmax(0,1fr))}.sticker-choice{padding:9px}}
+@media(prefers-reduced-motion:reduce){.sticker-choice,.sticker-choice:hover{transition:none;transform:none}}
