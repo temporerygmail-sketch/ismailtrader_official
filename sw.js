@@ -1,4 +1,4 @@
-const CACHE='nexoventia-shell-v7';
+const CACHE='nexoventia-shell-v8';
 const SHELL=['./','./index.html','./styles.css','./app.js','./logo.svg','./manifest.webmanifest'];
 const EXTERNAL_CACHE_HOSTS=['cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));self.skipWaiting()});
