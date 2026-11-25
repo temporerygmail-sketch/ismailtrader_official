@@ -59,7 +59,7 @@ function relative(value) { if(!value)return "—"; const ms=Date.now()-new Date(
 function toast(message,type="success") { let box=$(".toast-stack"); if(!box){box=document.createElement("div");box.className="toast-stack";document.body.append(box)} const el=document.createElement("div");el.className="toast "+type;el.textContent=message;box.append(el);setTimeout(()=>el.remove(),4300); }
 function showError(error) { console.error(error); toast(error?.message || "Something went wrong. Please try again.", "error"); }
 function pakiDayNo() { const now=localDate(); return Math.floor((new Date(now+"T00:00:00Z")-new Date("2026-12-01T00:00:00Z"))/86400000)+1; }
-function currentDayLabel() { const n=pakiDayNo(); if(n<1)return "Challenge starts in "+Math.abs(n)+" day"+(Math.abs(n)===1?"":"s"); if(n>31)return "Challenge complete"; return "Day "+n+" · "+fmtDate("2026-12-"+String(n).padStart(2,"0")+"T12:00:00Z",{month:"short",day:"numeric",year:"numeric"}); }
+function currentDayLabel() { const n=pakiDayNo(); if(n<1){const daysUntil=1-n;return "Challenge starts in "+daysUntil+" day"+(daysUntil===1?"":"s");} if(n>31)return "Challenge complete"; return "Day "+n+" · "+fmtDate("2026-12-"+String(n).padStart(2,"0")+"T12:00:00Z",{month:"short",day:"numeric",year:"numeric"}); }
 function datePeriodStart(period) { const today=localDate(); const d=new Date(today+"T00:00:00Z"); if(period==="today")return today; if(period==="week"){d.setUTCDate(d.getUTCDate()-6);return d.toISOString().slice(0,10)} if(period==="15d"){d.setUTCDate(d.getUTCDate()-14);return d.toISOString().slice(0,10)} return "0000-01-01"; }
 function filterDateRows(rows,field,period) { if(period==="all")return rows; const start=datePeriodStart(period); return rows.filter(r=>localDate(new Date(r[field]))>=start); }
 function initials(name) { return (name||"NX").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase(); }
@@ -322,13 +322,13 @@ function signalCard(s) {
   return '<article class="panel signal-card"><div class="signal-head"><div><div class="signal-pair">'+esc(s.pair)+'</div><div class="signal-meta"><span class="tag">'+esc(s.timeframe)+'</span><span class="tag">Amount '+money(s.amount)+'</span><span class="tag">'+(s.feed==="official"?"OFFICIAL RECORD":"DEMO RECORD")+'</span>'+(s.day_no?'<span class="tag">DAY '+s.day_no+'</span>':"")+'</div></div><div class="signal-direction '+(s.direction==="UP"?"up":"down")+'">'+s.direction+'</div></div><div class="signal-images">'+before+after+'</div><div class="signal-footer"><span>Issued '+fmtDate(s.issued_at,{month:"short",day:"numeric",year:"numeric"})+' · '+fmtTime(s.issued_at)+'</span><span>Expires '+fmtTime(s.expiry_at)+'</span>'+result+'</div>'+(s.result_note?'<div class="hint">'+esc(s.result_note)+'</div>':'')+'<div class="signal-footer"><span>Posted by '+esc(who?.display_name||"Nexoventia Admin")+'</span>'+actions+'</div></article>';
 }
 function renderSignalFeed(feed) {
-  const period=state.activePeriod==="15d"?"all":state.activePeriod;
+  const period=state.activePeriod;
   const stats=signalStats(feed,period);
   const isOfficial=feed==="official";
   const title=isOfficial?"Official Signal Notes":"Market Checking · Demo Signals";
   const desc=isOfficial?"Read-only signal history shared with every member, including timestamps and result evidence.":"Educational market-checking practice records. No real trade is placed from this board.";
   return pageHead(isOfficial?"OFFICIAL RECORDS":"DEMO SIGNAL ROOM",title,desc)+
-  '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>Historical outcomes; refunds excluded from the win-rate calculation</p></div>'+periodTabs(state.activePeriod==="15d"?"all":state.activePeriod)+'</div>'+
+  '<div class="section-row" style="margin-top:0"><div><h3>Signal summary</h3><p>Historical outcomes; refunds excluded from the win-rate calculation</p></div>'+periodTabs(state.activePeriod)+'</div>'+
   '<div class="grid grid-4">'+metric("Total signals",stats.total,"In selected period","activity")+
   metric("Wins",stats.wins,"Owner-recorded outcomes","trend","positive")+
   metric("Losses",stats.losses,"Owner-recorded outcomes","activity","negative")+
@@ -340,12 +340,12 @@ function renderSignalFeed(feed) {
   '<div class="alert info" style="margin-top:16px">A result can only be entered after the expiry time. The admin must choose Win, Loss or Refund and may attach an after-screenshot. The board does not automatically verify the Quotex result.</div>';
 }
 function renderTransactions() {
-  const period=state.activePeriod==="15d"?"all":state.activePeriod;
+  const period=state.activePeriod;
   const rows=filterDateRows(state.withdrawals,"created_at",period);
   const total=rows.reduce((s,w)=>s+Number(w.amount),0);
   const last=[...state.withdrawals].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
   return pageHead("MONEY MANAGER · SHARED LEDGER","Withdrawals & Receipts","Members can view the shared withdrawal ledger. Only the admin can add or correct a receipt.",state.isAdmin?'<button class="btn-primary" data-action="new-withdrawal">'+icon("plus")+' Add withdrawal</button>':"")+
-  '<div class="section-row" style="margin-top:0"><div><h3>Ledger overview</h3><p>Recorded withdrawals by date</p></div>'+periodTabs(state.activePeriod==="15d"?"all":state.activePeriod)+'</div>'+
+  '<div class="section-row" style="margin-top:0"><div><h3>Ledger overview</h3><p>Recorded withdrawals by date</p></div>'+periodTabs(state.activePeriod)+'</div>'+
   '<div class="grid grid-3">'+metric("Selected period",money(total),"Withdrawal amount in selected view","wallet")+
   metric("Total recorded",money(state.withdrawals.reduce((s,w)=>s+Number(w.amount),0)),state.withdrawals.length+" receipts saved","download")+
   metric("Last withdrawal",last?money(last.amount):"—",last?fmtDate(last.created_at)+" · "+fmtTime(last.created_at):"No withdrawal recorded yet","clock")+'</div>'+
@@ -572,7 +572,7 @@ function bindPageEvents() {
     if(error)showError(error);else{state.appState.next_signal_at=iso;toast("Next-session countdown shared with all members.");updateCountdowns()}
   });
   $("#clearCountdown")?.addEventListener("click",async()=>{
-    const {error}=await supabase.from("app_state").upsert({key:"next_signal_at",value:"null",updated_by:state.user.id,updated_at:new Date().toISOString()},{onConflict:"key"});
+    const {error}=await supabase.from("app_state").upsert({key:"next_signal_at",value:null,updated_by:state.user.id,updated_at:new Date().toISOString()},{onConflict:"key"});
     if(error)showError(error);else{state.appState.next_signal_at=null;toast("Countdown cleared.");updateCountdowns()}
   });
   $("#sendMessage")?.addEventListener("click",sendChatMessage);
