@@ -4,87 +4,76 @@
 
 - GitHub repository: https://github.com/temporerygmail-sketch/ismailtrader_official
 - Live app: https://temporerygmail-sketch.github.io/ismailtrader_official/
-- Supabase project: `nexoventia-trading-hub`
-- Supabase ref: `dbsgvcfvlnhwecyfsxib`
-- Supabase region: `ap-south-1` (Mumbai)
-- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
+- Supabase project ref: qxqdicbhsnrjibwgypyi
+- Supabase region: ap-southeast-2 (Sydney)
+- Supabase API URL: https://qxqdicbhsnrjibwgypyi.supabase.co
 
-The live Supabase database is already initialized with the December challenge, member profiles, signals, withdrawals, day closes, community, private inbox, notifications, presence and private media. All application tables have RLS enabled. Do not execute `schema.sql`: it is a reference snapshot, not a migration.
+The production database is already initialized with the December challenge, member profiles, signals, withdrawals, day closes, community, private inbox, notifications, presence and private media. Application tables have RLS enabled. Do not execute schema.sql; it is a reference snapshot, not a migration.
 
-## 1. Create your owner account
+## 1. Configure Supabase Auth
 
-1. Open the app and choose **Create account**.
-2. Register with your full name, username, email and password.
-3. Confirm your email if Supabase email confirmation is enabled.
-4. Sign in once. The Auth trigger creates your `public.profiles` record.
-5. In Supabase Dashboard → SQL Editor, replace the placeholder email with the exact email you registered and run:
+Open the Supabase project above, then go to **Authentication → URL Configuration**.
+
+Set the **Site URL** to:
+
+https://temporerygmail-sketch.github.io/ismailtrader_official/
+
+Under **Redirect URLs**, add this exact URL and save:
+
+https://temporerygmail-sketch.github.io/ismailtrader_official/
+
+The app uses this address for email confirmation and password-reset redirects. Supabase rejects redirect destinations that are not on the allow list.
+
+In **Authentication → Sign In / Providers → Email**, make sure:
+- Email provider is enabled.
+- Allow new users to sign up is enabled.
+- Email confirmation can remain enabled. When enabled, users must click the confirmation link before their first sign-in.
+
+After signup, check Inbox and Spam/Junk for the confirmation email. Supabase's default sender is intended only for limited testing; dependable delivery requires a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of this repository and frontend files.
+
+Google sign-in is currently hidden in the app. Email/password is the supported login and signup method.
+
+## 2. Create your owner account
+
+1. Open https://temporerygmail-sketch.github.io/ismailtrader_official/
+2. Choose **Create an account**.
+3. Enter your full name, a 3–24 character username (letters, numbers or underscores), email and a password of at least 8 characters.
+4. Submit the form.
+5. If email confirmation is enabled, open the confirmation email and click its link.
+6. Return to the app and sign in with the same email and password.
+
+The database trigger automatically creates your public.profiles row after Auth creates your account.
+
+## 3. Promote your own account to admin
+
+After your first account has been created and confirmed, open **Supabase Dashboard → SQL Editor** and run this SQL after replacing the placeholder with the exact email you registered:
 
 ```sql
-update auth.users
-set raw_app_meta_data =
-  coalesce(raw_app_meta_data, '{}'::jsonb)
-  || jsonb_build_object('role', 'admin')
-where lower(email) = lower('YOUR-OWNER-EMAIL@example.com');
-
-update public.profiles
-set role = 'admin', updated_at = now()
-where id = (
-  select id from auth.users
-  where lower(email) = lower('YOUR-OWNER-EMAIL@example.com')
-);
+update public.profiles p
+set role = 'admin',
+    updated_at = now()
+from auth.users u
+where p.id = u.id
+  and lower(u.email) = lower('YOUR-OWNER-EMAIL@example.com');
 ```
 
-6. Sign out completely and sign in again. Admin Control appears after both trusted role values are updated and you sign out and sign in again to refresh the JWT.
+Sign out completely, then sign in again. Admin Control should appear. The database helper private.is_admin() checks the current authenticated user's public.profiles.role = 'admin'. The app uses the same profile role for admin UI visibility.
 
-Promote only your own account. The database helper `public.is_admin()` checks the trusted JWT `app_metadata.role=admin` claim; the interface also requires `profiles.role=admin`. The role column is protected by database grants and Row Level Security; members cannot change their own role from the app. Do not rely on user-editable metadata for authorization. Do not share your password, authenticator code or owner session.
+Promote only your own account. User-editable metadata is not used for authorization. The profile role is protected from browser-side changes by database grants and Row Level Security. Never share your password, email confirmation link, authenticator code or owner session.
 
-## 2. Configure email confirmation and password reset
+## 4. Install on Android and desktop
 
-In Supabase Dashboard → Authentication → URL Configuration:
+Open the app in Chrome → browser menu → **Install app** or **Add to Home screen**. This installs the Progressive Web App in its own app-like window. It is not a signed native APK. A signed APK requires separate Android packaging, signing and release work.
 
-- Site URL: `https://temporerygmail-sketch.github.io/ismailtrader_official/`
-- Add the exact URL above to Redirect URLs.
-- Add `http://localhost:*` only if you use a local development server.
+After deployment, refresh the app. If an old version remains visible, close the installed app and reopen it; on desktop, use Ctrl+Shift+R.
 
-The default Supabase email sender is suitable for limited testing. For dependable confirmation and password-reset delivery, configure a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of this repository and frontend files.
+## 5. Notifications and online presence
 
-## 3. Enable Google sign-in
+In-app and Realtime notifications are stored in Supabase. Browser notifications need browser permission and an available browser/app session. Fully closed-app push requires a separate push delivery service and VAPID credentials; those are not configured here.
 
-The Google button is already present. Google sign-in requires a Google Client ID and Client Secret from your own Google Cloud project:
+Online status uses a recent presence heartbeat while the app is open. It indicates a recent connection, not proof that the person is actively watching the screen.
 
-1. In Google Cloud Console, create an OAuth Client ID of type **Web application**.
-2. Add Authorized JavaScript origin: `https://temporerygmail-sketch.github.io`.
-3. Add Authorized redirect URI: `https://dbsgvcfvlnhwecyfsxib.supabase.co/auth/v1/callback`.
-4. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Client ID and Client Secret.
-5. In Supabase Authentication → URL Configuration, ensure the GitHub Pages app URL is in Redirect URLs.
-
-Keep the Google Client Secret in Supabase provider settings only. Never put it in `app.js`, GitHub or browser storage.
-
-## 4. Authenticator security
-
-In Settings, enroll your primary TOTP authenticator. Enroll a second authenticator app/device as a backup while you still have access to the first. The database enforces AAL2 for accounts with a verified factor. This setup does not issue separate recovery codes; losing both authenticators requires an identity-verified account recovery route.
-
-## 5. GitHub Pages deployment
-
-In GitHub repository Settings → Pages → Build and deployment, choose **GitHub Actions** as the source.
-
-The custom workflow runs syntax and plan/security checks first. The Publish Pages job runs only when validation succeeds. The live app URL is:
-
-`https://temporerygmail-sketch.github.io/ismailtrader_official/`
-
-## 6. Install on Android and desktop
-
-Open the app in Chrome → browser menu → **Install app** or **Add to Home screen**. This installs the Progressive Web App in its own app-like window. It is not a signed native APK. A signed APK would require a separate Android packaging, signing and release workflow.
-
-The service worker checks for new app assets when the app is revisited/reloaded online. It cannot silently update a device while the device is offline.
-
-## 7. Notifications and online presence
-
-In-app and Realtime notifications are stored in Supabase. Browser notifications need browser permission and an available browser/app session. Fully closed-app push needs a separate push delivery service and VAPID credentials; those are not configured here.
-
-Online status uses a recent presence heartbeat while the app is open. It indicates recent connection, not proof that the person is actively watching the screen.
-
-## 8. Community permissions
+## 6. Community permissions
 
 - **Quetex Updates:** admin publishes; members view.
 - **Quetex Official Signals:** admin publishes the pair, timeframe, direction, amount, expiry and before image; after expiry, the admin records Win/Loss/Refund and an after image. Members view the shared Notes archive.
@@ -95,7 +84,7 @@ Online status uses a recent presence heartbeat while the app is open. It indicat
 
 These permissions are enforced by database Row Level Security and grants, not only by the interface.
 
-## 9. Challenge and money rules
+## 7. Challenge and money rules
 
 - Dates are December 1–31, 2026. Rest days are December 14, 21 and 28.
 - Nine planned withdrawals total **$226**.
@@ -105,8 +94,8 @@ These permissions are enforced by database Row Level Security and grants, not on
 - Day 31's **$98–$112** is before the **$82** withdrawal. If the balance reaches $112 before withdrawal, $30 remains after withdrawal; if it is $98, $16 remains.
 - The initial **$10** starting balance is provisional. Confirm it against your actual account before relying on P/L.
 
-## 10. Risk and service limits
+## 8. Risk and service limits
 
 This is a manual record-keeping and educational demo-signal app. It does not connect to Quotex, execute trades or guarantee outcomes. Binary options are high risk; the app is not financial advice.
 
-GitHub Pages and Supabase can be used within free-tier quotas, but free service is not unlimited. Google OAuth, verified SMTP and fully closed-app push notifications require the owner configuration described above.
+GitHub Pages and Supabase can be used within free-tier quotas, but free service is not unlimited. Reliable SMTP and fully closed-app push notifications require owner-side configuration.
