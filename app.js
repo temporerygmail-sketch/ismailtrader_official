@@ -62,6 +62,7 @@ function showError(error) {
   const raw=String(error?.message||error?.code||"Something went wrong. Please try again.");
   let message=raw;
   if(/email address not authorized/i.test(raw))message="Supabase default email sender cannot send to this address yet. The owner must configure a verified SMTP provider.";
+  else if(/over_email_send_rate_limit|email rate limit exceeded/i.test(raw))message="Supabase default email sending is limited to 2 messages per hour. Wait before retrying or configure a verified SMTP provider.";
   else if(/email_not_confirmed|email not confirmed/i.test(raw))message="Your email is not confirmed yet. Open the confirmation link from your inbox, then sign in.";
   else if(/email_provider_disabled|email provider.*disabled|signup_disabled|signups.*disabled/i.test(raw))message="Email signup is disabled in Supabase. The owner must enable Email provider and Allow new users to sign up.";
   else if(/invalid login credentials/i.test(raw))message="Email or password is incorrect, or the email is not confirmed. Check your details or use Forgot password.";
