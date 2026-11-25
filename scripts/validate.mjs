@@ -29,9 +29,12 @@ assert.ok(app.includes('const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N
 assert.ok(!app.includes("qxqdicbhsnrjibwgypyi")&&!app.includes("service_role")&&!app.includes("sb_secret_"));
 assert.ok(app.includes('state.isAdmin=state.profile?.role==="admin" && state.user.app_metadata?.role==="admin";'));
 for(const f of ["signInWithPassword","signUp(","provider:\"google\"","resetPasswordForEmail","supabase.auth.mfa.enroll","supabase.auth.mfa.challenge","supabase.auth.mfa.verify","function renderDashboard","function renderChallenge","function renderSignalFeed","function renderTransactions","function renderCommunity","function renderInbox","function renderNotifications","function renderAnalytics","function renderAdmin","function renderSettings","function resultModal","function toggleVoiceRecording","next_signal_at","nexoventia-media","Asia/Karachi","renderSignalSnapshot(\"Today\",\"today\")","renderSignalSnapshot(\"This week\",\"week\")","renderSignalSnapshot(\"All time\",\"all\")","Registered accounts","Profit days","PRE-WITHDRAWAL TARGET","ACTUAL CLOSE AFTER WD","data-action=\"new-update\""]) assert.ok(app.includes(f),"Missing "+f);
+assert.ok(app.includes("function renderStickerMarkup")&&app.includes("async function sendSticker"),"Community sticker flow is required.");
+assert.ok(app.includes('id="stickerTray"')&&app.includes('id="stickerTrayToggle"'),"Sticker tray UI is required.");
+assert.ok(app.includes("NEXO_STICKER:")&&css.includes("sticker-tray"),"Sticker persistence and styles are required.");
 assert.ok(html.includes('id="app"')&&html.includes("logo.svg"));
 assert.ok(css.includes("prefers-reduced-motion")&&css.includes("signal-snapshot"));
-assert.ok(sw.includes("nexoventia-shell-v8"));
+assert.ok(sw.includes("nexoventia-shell-v9"));
 assert.equal(manifest.display,"standalone");
 for(const d of [readme,setup])assert.ok(d.includes("dbsgvcfvlnhwecyfsxib")&&!d.includes("qxqdicbhsnrjibwgypyi"));
 assert.ok(setup.includes("raw_app_meta_data")&&setup.includes("public.is_admin()"));
