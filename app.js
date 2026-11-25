@@ -556,6 +556,52 @@ async function markNotificationsSeen() {
   for(const n of unread)await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("id",n.id);
   if(unread.length){state.notifications=state.notifications.map(n=>({...n,read_at:n.read_at||new Date().toISOString()}));}
 }
+function exportAnalyticsCsv() {
+  const rows = [
+    ["Record Type","Date","Day","Pair","Timeframe","Direction","Amount USD","Outcome","Opening Balance USD","Withdrawal USD","Net Result USD","Closing Balance USD","Note","Before Image","After Image","Receipt Image"],
+    ["Report",new Date().toISOString(),state.activePeriod,"","","","","","","","","","","","",""]
+  ];
+  for (const row of pnlRows()) {
+    const day = state.days.find(d => Number(d.day_no) === Number(row.day_no));
+    rows.push([
+      "Day Close", day?.calendar_date || "", row.day_no, "", "", "", "", "",
+      row.opening_balance ?? "", row.withdrawn ?? "", row.net_result ?? "",
+      row.closing_balance ?? "", row.note || "", "", "", ""
+    ]);
+  }
+  for (const signal of state.signals) {
+    rows.push([
+      signal.feed === "official" ? "Official Signal" : "Demo Signal",
+      signal.issued_at || "", signal.day_no ?? "", signal.pair || "", signal.timeframe || "",
+      signal.direction || "", signal.amount ?? "", signal.outcome || "",
+      "", "", "", "", signal.result_note || "", signal.before_path || "",
+      signal.after_path || "", ""
+    ]);
+  }
+  for (const withdrawal of state.withdrawals) {
+    rows.push([
+      "Withdrawal", withdrawal.created_at || "", withdrawal.day_no ?? "", "", "", "",
+      withdrawal.amount ?? "", "", "", withdrawal.amount ?? "", "", "",
+      withdrawal.note || "", "", "", withdrawal.receipt_path || ""
+    ]);
+  }
+  const csvCell = value => {
+    let text = String(value ?? "");
+    if (typeof value === "string" && ["=","+","-","@","\t","\r"].some(prefix => text.startsWith(prefix))) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
+  const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = "nexoventia-analytics-" + localDate() + ".csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
+  toast("CSV report downloaded.");
+}
 function renderAnalytics() {
   const s=rangeStats(state.activePeriod);
   const active=state.days.filter(d=>!d.is_rest_day).length;
@@ -566,6 +612,7 @@ function renderAnalytics() {
   pnl.filter(r=>r.net_result!=null).forEach(r=>{if(!best||r.net_result>best.net_result)best=r;if(!worst||r.net_result<worst.net_result)worst=r});
   return pageHead("PERFORMANCE INTELLIGENCE","Analytics","Historical records only. Win rate is calculated from recorded wins and losses; it is not a predictive accuracy score.")+
   '<div class="section-row" style="margin-top:0"><div><h3>Choose reporting window</h3><p>Daily, weekly, rolling 15-day and lifetime views</p></div>'+periodTabs(state.activePeriod)+'</div>'+
+  '<div class="inline-actions report-actions"><button class="btn-subtle btn-small" id="exportCsv">Download CSV</button><button class="btn-subtle btn-small" id="printReport">Print / Save PDF</button></div>'+
   '<div class="grid grid-4">'+metric("Net recorded P/L",money(s.net),"For selected window","trend",s.net>=0?"positive":"negative")+
   metric("Withdrawals",money(s.wd),s.wRows.length+" receipt(s)","wallet")+
   metric("Win / Loss",s.wins+" / "+s.losses,"Refunds: "+s.refunds,"activity")+
@@ -680,7 +727,9 @@ function withdrawalModal() {
 }
 function bindPageEvents() {
   $$("[data-page]").forEach(el=>el.addEventListener("click",()=>{state.page=el.dataset.page;render();$("#sidebar")?.classList.remove("open")}));
-  $$("[data-period]").forEach(el=>el.addEventListener("click",()=>{state.activePeriod=el.dataset.period;render()}));
+  $("[data-period]").forEach(el=>el.addEventListener("click",()=>{state.activePeriod=el.dataset.period;render()}));
+  $("#exportCsv")?.addEventListener("click",exportAnalyticsCsv);
+  $("#printReport")?.addEventListener("click",()=>window.print());
   $$("[data-community-mode]").forEach(el=>el.addEventListener("click",()=>{state.communityMode=el.dataset.communityMode;render();loadMessages()}));
   $$("[data-inbox-user]").forEach(el=>el.addEventListener("click",()=>{state.selectedInboxUser=el.dataset.inboxUser;render();loadInbox()}));
   $$("[data-message-user]").forEach(el=>el.addEventListener("click",()=>{state.selectedInboxUser=el.dataset.messageUser;state.page="inbox";render();loadInbox()}));
