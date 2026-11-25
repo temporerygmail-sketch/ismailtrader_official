@@ -215,12 +215,54 @@ function renderShell() {
   document.body.classList.toggle("light",state.theme==="light");
   const names={dashboard:["WORKSPACE","Dashboard"],challenge:["CHALLENGE / DECEMBER 2026","Challenge Plan"],notes:["OFFICIAL SIGNAL ARCHIVE","Quetex Official Signals"],demo:["PRACTICE ONLY","Market Checking · Demo Signals"],transactions:["MONEY MANAGER","Withdrawals"],community:["COMMUNITY","Community"],analytics:["PERFORMANCE","Analytics"],notifications:["ALERT CENTRE","Notifications"],inbox:["PRIVATE SUPPORT","Admin Inbox"],admin:["OWNER TOOLS","Admin Control"],settings:["PREFERENCES","Settings"]};
   const n=names[state.page]||names.dashboard;
-  app.innerHTML='<div class="app-shell"><aside class="sidebar" id="sidebar"><div class="brand"><img src="./logo.svg" alt="Nexoventia"><div><div class="brand-name">NEXOVENTIA</div><div class="brand-sub">TRADING OPERATIONS</div></div></div>'+navigation()+'<div class="side-footer"><div class="status-pill"><i class="status-dot"></i> PRIVATE SESSION ACTIVE</div><div class="hint" style="padding:12px 4px 0">v1.0 · December challenge workspace</div></div></aside><main class="main"><header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation">'+icon("menu")+'</button><div><div class="eyebrow">'+n[0]+'</div><div class="page-title">'+n[1]+'</div></div></div><div class="top-actions"><label class="search-box">'+icon("search")+'<input id="globalSearch" placeholder="Search this workspace" value="'+esc(state.globalSearch)+'"></label><button class="icon-btn" data-page="notifications" aria-label="Notifications">'+icon("bell")+'</button><button class="icon-btn" data-page="settings" aria-label="Settings">'+icon("settings")+'</button><div class="avatar" title="'+esc(state.profile.display_name)+'">'+(state.profile.avatar_path?'<img data-media-path="'+esc(state.profile.avatar_path)+'" alt="">':esc(initials(state.profile.display_name)))+'</div></div></header><section class="page" id="pageContent">'+renderPage()+'</section></main></div><nav class="mobile-nav">'+[["dashboard","Overview","grid"],["challenge","Plan","calendar"],["notes","Notes","notes"],["community","Community","users"],["analytics","Stats","chart"]].map(([id,t,ic])=>'<button data-page="'+id+'" class="'+(state.page===id?"active":"")+'">'+icon(ic)+'<span>'+t+'</span></button>').join("")+'</nav><div id="modal-root"></div>';
+  app.innerHTML='<div class="app-shell"><aside class="sidebar" id="sidebar"><div class="brand"><img src="./logo.svg" alt="Nexoventia"><div><div class="brand-name">NEXOVENTIA</div><div class="brand-sub">TRADING OPERATIONS</div></div></div>'+navigation()+'<div class="side-footer"><div class="status-pill"><i class="status-dot"></i> PRIVATE SESSION ACTIVE</div><div class="hint" style="padding:12px 4px 0">v1.0 · December challenge workspace</div></div></aside><main class="main"><header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation">'+icon("menu")+'</button><div><div class="eyebrow">'+n[0]+'</div><div class="page-title">'+n[1]+'</div></div></div><div class="top-actions"><div class="search-wrap"><label class="search-box">'+icon("search")+'<input id="globalSearch" placeholder="Search this workspace" value="'+esc(state.globalSearch)+'"></label><div id="searchResults" class="search-results" hidden></div></div><button class="icon-btn" data-page="notifications" aria-label="Notifications">'+icon("bell")+'</button><button class="icon-btn" data-page="settings" aria-label="Settings">'+icon("settings")+'</button><div class="avatar" title="'+esc(state.profile.display_name)+'">'+(state.profile.avatar_path?'<img data-media-path="'+esc(state.profile.avatar_path)+'" alt="">':esc(initials(state.profile.display_name)))+'</div></div></header><section class="page" id="pageContent">'+renderPage()+'</section></main></div><nav class="mobile-nav">'+[["dashboard","Overview","grid"],["challenge","Plan","calendar"],["notes","Notes","notes"],["community","Community","users"],["analytics","Stats","chart"]].map(([id,t,ic])=>'<button data-page="'+id+'" class="'+(state.page===id?"active":"")+'">'+icon(ic)+'<span>'+t+'</span></button>').join("")+'</nav><div id="modal-root"></div>';
   document.title="Nexoventia · "+n[1];
   bindPageEvents();hydrateMedia();updateCountdowns();
   if(state.page==="inbox")loadInbox(false);
   if(state.page==="community")loadMessages(false);
   if(state.page==="notifications")markNotificationsSeen();
+}
+function renderGlobalSearchResults(){
+  const root=$("#searchResults");
+  if(!root)return;
+  const q=(state.globalSearch||"").trim().toLowerCase();
+  if(!q){root.hidden=true;root.innerHTML="";return;}
+  const results=[];
+  const add=(label,detail,page,mode="")=>results.push({label,detail,page,mode});
+  for(const day of state.days){
+    const hay=("day "+day.day_no+" "+day.calendar_date+" "+(day.is_rest_day?"rest day":"")).toLowerCase();
+    if(hay.includes(q))add("Day "+day.day_no,day.calendar_date+" · "+(day.is_rest_day?"Rest day":money(day.target_min)+"–"+money(day.target_max)),"challenge");
+  }
+  for(const signal of state.signals){
+    const hay=(signal.pair+" "+signal.direction+" "+signal.timeframe+" "+signal.outcome+" "+signal.day_no).toLowerCase();
+    if(hay.includes(q))add(signal.pair+" · "+signal.direction,signal.feed.toUpperCase()+" · "+signal.outcome.toUpperCase()+" · "+fmtDate(signal.issued_at),signal.feed==="official"?"notes":"demo");
+  }
+  for(const withdrawal of state.withdrawals){
+    const hay=(withdrawal.amount+" "+withdrawal.note+" "+withdrawal.day_no+" "+withdrawal.created_at).toLowerCase();
+    if(hay.includes(q))add("Withdrawal "+money(withdrawal.amount),fmtDate(withdrawal.created_at)+" · "+fmtTime(withdrawal.created_at),"transactions");
+  }
+  for(const message of state.messages){
+    if((message.body||"").toLowerCase().includes(q))add((message.body||"Community attachment").slice(0,64),fmtDate(message.created_at)+" · "+message.channel,"community",message.channel);
+  }
+  if(state.isAdmin){
+    for(const member of state.profiles){
+      if((member.display_name+" "+(member.username||"")).toLowerCase().includes(q))add(member.display_name+" · @"+(member.username||"member"),"Member account · open admin inbox","inbox");
+    }
+  }
+  const shown=results.slice(0,10);
+  root.hidden=false;
+  root.innerHTML=shown.length?shown.map((item,i)=>'<button class="search-result" data-search-index="'+i+'"><span class="search-result-icon">'+icon("search")+'</span><span><strong>'+esc(item.label)+'</strong><small>'+esc(item.detail)+'</small></span>'+icon("arrow")+'</button>').join(""):'<div class="search-empty">No matching records found in the loaded workspace.</div>';
+  $(".search-result",root).forEach((button,i)=>button.addEventListener("click",()=>{
+    const item=shown[i];
+    state.page=item.page;
+    if(item.page==="community")state.communityMode=item.mode==="updates"?"updates":"discussion";
+    if(item.page==="inbox"&&state.isAdmin){
+      const member=state.profiles.find(p=>(p.display_name+" "+(p.username||"")).toLowerCase().includes(q));
+      if(member)state.selectedInboxUser=member.id;
+    }
+    state.globalSearch="";
+    render();
+  }));
 }
 function render() { if(!state.user)renderAuth(); else renderShell(); }
 function renderPage() {
@@ -242,7 +284,7 @@ function renderPage() {
 function closedFor(dayNo){return state.closes.find(c=>Number(c.day_no)===Number(dayNo));}
 function withdrawalsForDay(dayNo){return state.withdrawals.filter(w=>Number(w.day_no)===Number(dayNo)).reduce((s,w)=>s+Number(w.amount),0);}
 function pnlRows(){
-  let carriedBalance=10;
+  let carriedBalance=Number(state.appState.starting_balance ?? 10);
   let balanceKnown=true;
   const closeByDay=new Map(state.closes.map(c=>[Number(c.day_no),c]));
   const rows=[];
@@ -318,7 +360,7 @@ function renderChallenge() {
   '<div class="grid grid-3">'+metric("Calendar days","31","December 1–31, 2026","calendar")+
   metric("Active / rest days","28 / 3","Day 14, 21 and 28 are rest days","clock")+
   metric("Planned withdrawals",money(planWd),"Nine original withdrawal targets","wallet")+'</div>'+
-  '<div class="alert" style="margin:16px 0"><strong>Day 12 needs your confirmation.</strong> Your original note is saved as $25–$43. I have not changed it. Confirm later whether you intended $35–$43.</div>'+
+  '<div class="alert" style="margin:16px 0"><strong>Day 12 needs your confirmation.</strong> Your original note is saved as $25–$43. I have not changed it. Confirm later whether you intended $35–$43.</div><div class="alert info" style="margin:0 0 16px">Opening balance baseline is currently '+money(state.appState.starting_balance ?? 10)+' — provisionally inferred from Day 1’s $10 lower target. The admin can correct it if your actual starting balance is different.</div>'+
   '<div class="panel panel-pad"><div class="section-row" style="margin-top:0"><div><h3>Daily schedule</h3><p>All dates use Pakistan local date and time for display</p></div><span class="tag">SOURCE PLAN · LOCKED</span></div><div class="table-scroll"><table class="data-table"><thead><tr><th>DAY</th><th>DATE</th><th>TARGET RANGE</th><th>PLAN WD</th><th>ACTUAL CLOSE</th><th>WITHDRAWN</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
   '<div class="alert info" style="margin-top:16px">Balance carry-forward: the next day’s opening balance is the previous recorded day close. Day-close is the remaining account balance after any withdrawal recorded for that day. The app does not estimate or silently fill it.</div>';
 }
@@ -478,7 +520,7 @@ function renderAdmin() {
   '<div class="grid grid-3">'+metric("Registered accounts",state.profiles.length,"Visible to the owner only","users")+
   metric("Currently online",online.length,"Presence updated while the app is open","activity","positive")+
   metric("Total withdrawals",money(state.withdrawals.reduce((s,w)=>s+Number(w.amount),0)),state.withdrawals.length+" receipt records","wallet")+'</div>'+
-  '<div class="grid grid-2" style="margin-top:15px"><section class="panel panel-pad"><div class="eyebrow">NEXT SIGNAL SESSION</div><div class="countdown" id="countdownLarge" style="font-size:36px;margin:15px 0">'+countdownText(next)+'</div><div class="hint">'+(next?"All members can see this shared countdown.":"No next session countdown has been set.")+'</div><form id="sessionForm" class="form-grid" style="margin-top:15px"><div class="field"><label>START IN (MINUTES)</label><input name="minutes" type="number" min="1" max="10080" required placeholder="e.g. 30"></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Set shared countdown</button></div></form><button class="btn-subtle btn-small" id="clearCountdown" style="margin-top:9px">Clear countdown</button></section>'+
+  '<div class="grid grid-3" style="margin-top:15px"><section class="panel panel-pad"><div class="eyebrow">STARTING BALANCE</div><h3 class="panel-title" style="margin:10px 0">Set the initial account amount</h3><p class="panel-sub">This is the Day 1 opening reference used only for recorded P/L calculations.</p><form id="startingBalanceForm" class="form-grid" style="margin-top:12px"><div class="field"><label>STARTING BALANCE (USD)</label><input name="amount" type="number" min="0" step=".01" required value="'+esc(state.appState.starting_balance ?? 10)+'"></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Save baseline</button></div></form></section><section class="panel panel-pad"><div class="eyebrow">NEXT SIGNAL SESSION</div><div class="countdown" id="countdownLarge" style="font-size:36px;margin:15px 0">'+countdownText(next)+'</div><div class="hint">'+(next?"All members can see this shared countdown.":"No next session countdown has been set.")+'</div><form id="sessionForm" class="form-grid" style="margin-top:15px"><div class="field"><label>START IN (MINUTES)</label><input name="minutes" type="number" min="1" max="10080" required placeholder="e.g. 30"></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Set shared countdown</button></div></form><button class="btn-subtle btn-small" id="clearCountdown" style="margin-top:9px">Clear countdown</button></section>'+
   '<section class="panel panel-pad"><div class="eyebrow">DAY CLOSE · '+(currentOpen?"DAY "+currentOpen.day_no:"CALENDAR")+'</div><h3 class="panel-title" style="margin:10px 0">Record actual closing balance</h3><p class="panel-sub">Enter the remaining account balance only. The next day carries this recorded close forward automatically.</p><button class="btn-primary" data-close-day="'+(currentOpen?.day_no||1)+'" style="margin-top:16px">Open day-close form</button><div class="divider"></div><div class="hint">Actual balance is never overwritten by the planned target. Corrections are preserved in the audit log.</div></section></div>'+
   '<div class="section-row"><div><h3>Quick publishing tools</h3><p>All signal actions are recorded in the shared archive</p></div></div><div class="inline-actions"><button class="btn-primary" data-new-feed="official">Publish official signal</button><button class="btn-subtle" data-new-feed="demo">Publish demo signal</button><button class="btn-subtle" data-action="new-withdrawal">Add withdrawal receipt</button><button class="btn-subtle" data-page="community">Post an update</button></div>'+
   '<div class="grid grid-2" style="margin-top:18px"><section class="panel panel-pad"><div class="section-row" style="margin:0 0 12px"><div><h3>Online members</h3><p>Only the owner can see the online member list</p></div><span class="tag">'+online.length+' ONLINE</span></div>'+(online.length?'<div class="online-list">'+online.map(p=>{const u=profileBy(p.user_id);return '<div class="online-user"><div class="avatar">'+esc(initials(u?.display_name))+'</div><div><strong style="font-size:11px">'+esc(u?.display_name||"Member")+'</strong><small>'+esc(u?.username||"")+' · '+relative(p.last_seen)+'</small></div><i class="online-indicator"></i><button class="btn-small btn-subtle" data-message-user="'+p.user_id+'">Message</button></div>'}).join("")+'</div>':empty("No members online","Online presence is updated when a member has the app open.","users"))+'</section>'+
@@ -584,8 +626,8 @@ function bindPageEvents() {
   $$("[data-action='new-withdrawal']").forEach(el=>el.addEventListener("click",withdrawalModal));
   $$("[data-action='close-current']").forEach(el=>el.addEventListener("click",()=>closeDayModal(Math.max(1,Math.min(31,pakiDayNo())))));
   $("#mobileMenu")?.addEventListener("click",()=>$("#sidebar")?.classList.toggle("open"));
-  $("#globalSearch")?.addEventListener("input",e=>{state.globalSearch=e.target.value});
-  $("#sessionForm")?.addEventListener("submit",async e=>{
+  $("#globalSearch")?.addEventListener("input",e=>{state.globalSearch=e.target.value;renderGlobalSearchResults()});$("#globalSearch")?.addEventListener("focus",renderGlobalSearchResults);
+  $("#startingBalanceForm")?.addEventListener("submit",async e=>{e.preventDefault();const amount=Number(new FormData(e.currentTarget).get("amount"));if(!Number.isFinite(amount)||amount<0){toast("Enter a valid starting balance.","error");return}const {error}=await supabase.from("app_state").upsert({key:"starting_balance",value:amount,updated_by:state.user.id,updated_at:new Date().toISOString()},{onConflict:"key"});if(error)showError(error);else{state.appState.starting_balance=amount;toast("Starting balance baseline updated.");await loadData()}});$("#sessionForm")?.addEventListener("submit",async e=>{
     e.preventDefault();const minutes=Number(new FormData(e.currentTarget).get("minutes"));if(!Number.isFinite(minutes)||minutes<1||minutes>10080){toast("Choose a time between 1 and 10,080 minutes.","error");return}
     const iso=new Date(Date.now()+minutes*60000).toISOString();
     const {error}=await supabase.from("app_state").upsert({key:"next_signal_at",value:JSON.stringify(iso),updated_by:state.user.id,updated_at:new Date().toISOString()},{onConflict:"key"});
