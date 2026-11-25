@@ -368,7 +368,7 @@ function rangeStats(period) {
   const wRows=filterDateRows(state.withdrawals,"created_at",period);
   const sRows=filterDateRows(state.signals,"issued_at",period);
   const wins=sRows.filter(s=>s.outcome==="win").length,losses=sRows.filter(s=>s.outcome==="loss").length,refunds=sRows.filter(s=>s.outcome==="refund").length;
-  const net=pRows.reduce((s,r)=>s+Number(r.net_result),0);
+  const net=pRows.reduce((s,r)=>s+(r.net_result==null?0:Number(r.net_result)),0);
   const wd=wRows.reduce((s,w)=>s+Number(w.amount),0);
   const accuracy=(wins+losses)?wins/(wins+losses)*100:0;
   return {pRows,wRows,sRows,wins,losses,refunds,net,wd,accuracy};
