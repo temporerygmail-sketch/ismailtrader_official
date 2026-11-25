@@ -170,17 +170,15 @@ async function authChanged(session) {
   if(!session){stopRuntime();state.profile=null;state.isAdmin=false;state.mfaPendingFactor=null;state.mfaChallengeId=null;state.loading=false;render();return;}
   try{
     const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if(!assuranceError&&assurance?.nextLevel==="aal2"&&assurance.currentLevel!=="aal2"){
-      const {data:factors,error:factorsError}=await supabase.auth.mfa.listFactors();
-      if(!factorsError){
-        state.mfaFactors=(factors?.totp||[]).filter(f=>f.status==="verified");
-        const verified=state.mfaFactors[0];
-        if(verified){
-          const {data:challenge,error:challengeError}=await supabase.auth.mfa.challenge({factorId:verified.id});
-          if(challengeError)throw challengeError;
-          state.mfaPendingFactor=verified.id;state.mfaChallengeId=challenge.id;state.loading=false;renderMfaChallenge();return;
-        }
-      }
+    if(assuranceError)throw assuranceError;
+    const {data:factors,error:factorsError}=await supabase.auth.mfa.listFactors();
+    if(factorsError)throw factorsError;
+    state.mfaFactors=(factors?.totp||[]).filter(f=>f.status==="verified");
+    if(assurance?.nextLevel==="aal2"&&assurance.currentLevel!=="aal2"&&state.mfaFactors.length){
+      const verified=state.mfaFactors[0];
+      const {data:challenge,error:challengeError}=await supabase.auth.mfa.challenge({factorId:verified.id});
+      if(challengeError)throw challengeError;
+      state.mfaPendingFactor=verified.id;state.mfaChallengeId=challenge.id;state.loading=false;renderMfaChallenge();return;
     }
   }catch(error){showError(error);state.loading=false;renderAuth();return;}
   state.mfaPendingFactor=null;state.mfaChallengeId=null;
@@ -586,7 +584,7 @@ function renderSettings() {
   '<div class="grid grid-2"><section class="panel panel-pad"><div class="section-row" style="margin:0 0 15px"><div><h3>Public profile</h3><p>Members see your display name and username</p></div><span class="tag">'+(state.isAdmin?"ADMIN":"MEMBER")+'</span></div><form id="profileForm" class="form-grid"><div class="field full"><label>PROFILE PHOTO</label><input name="avatar" type="file" accept="image/png,image/jpeg,image/webp"></div><div class="field full"><label>DISPLAY NAME</label><input name="display_name" required maxlength="80" value="'+esc(p.display_name)+'"></div><div class="field full"><label>USERNAME</label><input name="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" value="'+esc(p.username||"")+'"></div><div class="field full"><label>BIO</label><textarea name="bio" maxlength="240">'+esc(p.bio||"")+'</textarea></div><div class="field full"><button class="btn-primary" type="submit">Save profile</button></div></form></section>'+
   '<section class="panel panel-pad"><h3 class="panel-title">Appearance</h3><p class="panel-sub">Choose the workspace theme for this device.</p><div class="inline-actions" style="margin-top:16px"><button class="btn-subtle" data-theme="dark">Dark terminal</button><button class="btn-subtle" data-theme="light">Light studio</button></div><div class="divider"></div><h3 class="panel-title">Notifications</h3><p class="panel-sub">Allow browser notifications while this browser is available. Offline push requires extra server configuration.</p><button class="btn-primary btn-small" id="enableNotifications" style="margin-top:12px">Enable browser notifications</button><div class="divider"></div><h3 class="panel-title">Install app</h3><p class="panel-sub">Add Nexoventia to your Android home screen or desktop app launcher.</p><button class="btn-subtle btn-small" id="installPwa" style="margin-top:12px">Install Nexoventia</button></section></div>'+
   '<div class="grid grid-2" style="margin-top:15px"><section class="panel panel-pad"><h3 class="panel-title">Password</h3><p class="panel-sub">Use a strong, unique password for your account.</p><form id="passwordForm" class="form-grid" style="margin-top:15px"><div class="field full"><label>NEW PASSWORD</label><input name="password" type="password" minlength="8" required placeholder="At least 8 characters"></div><div class="field full"><button class="btn-subtle" type="submit">Update password</button></div></form></section>'+
-  '<section class="panel panel-pad"><h3 class="panel-title">Two-factor authentication</h3><p class="panel-sub">Use an authenticator app for an additional sign-in challenge, where Supabase MFA is enabled for this project.</p><div id="mfaArea" style="margin-top:14px"><button class="btn-subtle btn-small" id="startMfa">Set up authenticator</button></div></section></div>'+
+  '<section class="panel panel-pad"><h3 class="panel-title">Two-factor authentication</h3><p class="panel-sub">Use an authenticator app for an additional sign-in challenge, where Supabase MFA is enabled for this project.</p><div id="mfaArea" style="margin-top:14px">'+(state.mfaFactors.length?'<span class="tag done">TOTP MFA ACTIVE · '+state.mfaFactors.length+' DEVICE(S)</span><p class="hint" style="margin:10px 0">Add a second authenticator on a separate device as a backup. Supabase does not issue recovery codes.</p><button class="btn-subtle btn-small" id="startMfa">Add backup authenticator</button>':'<button class="btn-subtle btn-small" id="startMfa">Set up authenticator</button>')+'</div></section></div>'+
   '<section class="panel panel-pad" style="margin-top:15px"><div class="signal-head"><div><h3 class="panel-title">Session & privacy</h3><p class="panel-sub">Your account uses Supabase Auth. Public clients never receive database service-role credentials.</p></div><button class="btn-danger btn-small" id="signOut">'+icon("logout")+' Sign out</button></div><div class="divider"></div><div class="grid grid-3"><div><div class="mono">ACCOUNT CREATED</div><strong style="display:block;margin-top:8px">'+fmtDate(p.created_at)+'</strong></div><div><div class="mono">LOGIN EMAIL</div><strong style="display:block;margin-top:8px;overflow-wrap:anywhere">'+esc(state.user.email)+'</strong></div><div><div class="mono">ROLE</div><strong style="display:block;margin-top:8px">'+(state.isAdmin?"Owner / Admin":"Member")+'</strong></div></div></section>'+
   '<div class="alert info" style="margin-top:15px">For account deletion or data export, contact the project owner first. Your personal message and session data are protected by row-level security.</div>';
 }
