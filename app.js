@@ -494,7 +494,7 @@ function renderCommunity() {
   const updates=mode==="updates";
   const title=updates?"Quetex Updates":"Discussion Group";
   const desc=updates?"Admin-only announcement room. Members can read and receive updates.":"Open group chat. Members can message, reply and share photos, videos, voice notes, GIFs, stickers and files.";
-  const compose=updates&&!state.isAdmin?'<div class="alert info">This room is announcement-only. Only the Nexoventia admin can publish here.</div>':'<div class="chat-compose"><button class="icon-btn" id="attachFiles" title="Attach media">'+icon("image")+'</button><input id="chatFiles" type="file" accept="image/*,video/mp4,video/webm,audio/*,application/pdf" multiple><textarea id="chatText" placeholder="'+(updates?"Write an announcement…":"Write a message to the community…")+'"></textarea><button class="icon-btn" id="recordVoice" title="Record voice note">'+icon("mic")+'</button><button class="btn-primary" id="sendMessage" aria-label="Send message">'+icon("send")+'</button></div>';
+  const compose=updates&&!state.isAdmin?'<div class="alert info">This room is announcement-only. Only the Nexoventia admin can publish here.</div>':'<div class="chat-compose"><button class="icon-btn" id="attachFiles" title="Attach media">'+icon("image")+'</button><input id="chatFiles" type="file" accept="image/*,video/mp4,video/webm,audio/*,application/pdf" multiple><textarea id="chatText" placeholder="'+(updates?"Write an announcement…":"Write a message to the community…")+'"></textarea><button class="icon-btn" id="recordVoice" title="Record voice note">'+icon("mic")+'</button><button class="icon-btn" id="stickerTrayToggle" title="Open sticker tray">'+icon("notes")+'</button><button class="btn-primary" id="sendMessage" aria-label="Send message">'+icon("send")+'</button></div>';
   return pageHead("COMMUNITY · MODERATED ROOMS","Community","Four shared rooms. Members can post only in the Discussion Group; all other rooms are read-only for members.")+
   '<div class="panel chat-layout"><aside class="chat-rooms"><div class="eyebrow" style="padding:3px 8px 10px">COMMUNITY ROOMS</div>'+
   '<button class="room-btn '+(updates?"active":"")+'" data-community-mode="updates"><span class="room-avatar">'+icon("bell")+'</span><span><div class="room-title">Quetex Updates</div><div class="room-sub">ADMIN POSTS ONLY</div></span></button>'+
@@ -502,7 +502,7 @@ function renderCommunity() {
   '<button class="room-btn" data-page="demo"><span class="room-avatar">'+icon("activity")+'</span><span><div class="room-title">Market Checking · Demo Signals</div><div class="room-sub">ADMIN DEMO POSTS</div></span></button>'+
   '<button class="room-btn '+(!updates?"active":"")+'" data-community-mode="discussion"><span class="room-avatar">'+icon("users")+'</span><span><div class="room-title">Discussion Group</div><div class="room-sub">MEMBER CHAT OPEN</div></span></button>'+
   '<div class="divider"></div><div class="hint">Private messages are limited to member ↔ admin. Members cannot message one another privately.</div></aside>'+
-  '<section class="chat-main"><header class="chat-header"><div><div class="panel-title">'+title+'</div><div class="hint">'+desc+'</div></div><span class="tag">'+(updates?"ADMIN ONLY":"ALL MEMBERS")+'</span></header><div class="chat-feed" id="chatFeed">'+empty("Loading messages","The newest messages will appear here.","message")+'</div>'+compose+'</section></div>';
+  '<section class="chat-main"><header class="chat-header"><div><div class="panel-title">'+title+'</div><div class="hint">'+desc+'</div></div><span class="tag">'+(updates?"ADMIN ONLY":"ALL MEMBERS")+'</span></header><div class="chat-feed" id="chatFeed">'+empty("Loading messages","The newest messages will appear here.","message")+'</div>'+compose+'<div class="sticker-tray" id="stickerTray" hidden>'+[["market-pulse","Market pulse","activity"],["trend-watch","Trend watch","chart"],["signal-ready","Signal ready","activity"],["verified","Reviewed","shield"],["stay-focused","Stay focused","lock"],["learning-mode","Learning mode","notes"],["time-check","Time check","clock"],["team-talk","Team discussion","users"]].map(([id,label,ic])=>'<button class="sticker-choice" data-sticker="'+id+'" type="button"><span>'+icon(ic)+'</span><b>'+label+'</b></button>').join("")+'</div></section></div>';
 }
 async function loadMessages(showToast=true) {
   if(state.page!=="community"||!["updates","discussion"].includes(state.communityMode))return;
@@ -515,7 +515,7 @@ async function loadMessages(showToast=true) {
     const node=$("#chatFeed");if(!node)return;
     node.innerHTML=state.messages.length?state.messages.map(m=>{
       const p=profileBy(m.user_id),atts=Array.isArray(m.attachments)?m.attachments:[];
-      return '<article class="message '+(m.user_id===state.user.id?"mine":"")+'"><div class="message-name">'+esc(p?.display_name||"Member")+(p?.role==="admin"?' · ADMIN':'')+'</div><div class="message-body">'+esc(m.body)+'</div>'+(atts.length?'<div class="message-media">'+atts.map(a=>{
+      return '<article class="message '+(m.user_id===state.user.id?"mine":"")+'"><div class="message-name">'+esc(p?.display_name||"Member")+(p?.role==="admin"?' · ADMIN':'')+'</div><div class="message-body">'+(String(m.body||"").startsWith("NEXO_STICKER:")?renderStickerMarkup(String(m.body).slice(12)):esc(m.body||""))+'</div>'+(atts.length?'<div class="message-media">'+atts.map(a=>{
         if(isImage(a.type))return '<img data-media-path="'+esc(a.path)+'" alt="'+esc(a.name)+'">';
         if(isVideo(a.type))return '<video controls playsinline data-media-path="'+esc(a.path)+'"></video>';
         if(isAudio(a.type))return '<audio controls data-media-path="'+esc(a.path)+'"></audio>';
@@ -757,6 +757,8 @@ function bindPageEvents() {
   $("#attachFiles")?.addEventListener("click",()=>$("#chatFiles")?.click());
   $("#chatFiles")?.addEventListener("change",e=>{state.queuedFiles=Array.from(e.target.files||[]);toast(state.queuedFiles.length+" file(s) selected.")});
   $("#recordVoice")?.addEventListener("click",toggleVoiceRecording);
+  $("#stickerTrayToggle")?.addEventListener("click",()=>{const tray=$("#stickerTray");if(tray&&state.communityMode==="discussion")tray.hidden=!tray.hidden;else toast("Stickers are available in Discussion Group only.")});
+  $("[data-sticker]").forEach(button=>button.addEventListener("click",()=>sendSticker(button.dataset.sticker)));
   $$(".reply-btn").forEach(b=>b.addEventListener("click",()=>{state.replyTo=b.dataset.replyMessage;toast("Reply target selected. Type your reply below.");$("#chatText")?.focus()}));
   $("#sendPrivate")?.addEventListener("click",sendPrivateMessage);
   $("#inboxText")?.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrivateMessage()}});
@@ -781,6 +783,34 @@ async function sendChatMessage() {
     state.queuedFiles=[];state.replyTo=null;input.value="";$("#chatFiles").value="";
     await loadMessages(false);
   }catch(error){showError(error)}finally{if($("#sendMessage"))$("#sendMessage").disabled=false}
+}
+function renderStickerMarkup(key){
+  const stickers={
+    "market-pulse":{title:"MARKET PULSE",sub:"OBSERVE · THEN DECIDE",icon:"activity"},
+    "trend-watch":{title:"TREND WATCH",sub:"DIRECTIONAL STUDY",icon:"chart"},
+    "signal-ready":{title:"SIGNAL READY",sub:"EDUCATIONAL EXAMPLE",icon:"activity"},
+    "verified":{title:"REVIEWED",sub:"RESULT RECORDED",icon:"shield"},
+    "stay-focused":{title:"STAY FOCUSED",sub:"DISCIPLINE FIRST",icon:"lock"},
+    "learning-mode":{title:"LEARNING MODE",sub:"STUDY THE SETUP",icon:"notes"},
+    "time-check":{title:"TIME CHECK",sub:"WAIT FOR CONFIRMATION",icon:"clock"},
+    "team-talk":{title:"TEAM DISCUSSION",sub:"SHARE YOUR REASONING",icon:"users"}
+  };
+  const s=stickers[key];if(!s)return esc("Sticker unavailable");
+  return '<div class="nexo-sticker" role="img" aria-label="'+esc(s.title)+'"><span class="nexo-sticker-icon">'+icon(s.icon)+'</span><span><strong>'+esc(s.title)+'</strong><small>'+esc(s.sub)+'</small></span><span class="nexo-sticker-mark">NX</span></div>';
+}
+async function sendSticker(key){
+  const allowed=["market-pulse","trend-watch","signal-ready","verified","stay-focused","learning-mode","time-check","team-talk"];
+  if(state.communityMode!=="discussion"||!allowed.includes(key)||!state.user)return;
+  const button=$("[data-sticker='"+key+"']");if(button)button.disabled=true;
+  try{
+    const {error}=await supabase.from("messages").insert({
+      channel:"discussion",user_id:state.user.id,body:"NEXO_STICKER:"+key,attachments:[],reply_to:state.replyTo
+    });
+    if(error)throw error;
+    state.replyTo=null;
+    const tray=$("#stickerTray");if(tray)tray.hidden=true;
+    await loadMessages(false);
+  }catch(error){showError(error)}finally{if(button)button.disabled=false}
 }
 async function toggleVoiceRecording() {
   const btn=$("#recordVoice");if(!btn)return;
