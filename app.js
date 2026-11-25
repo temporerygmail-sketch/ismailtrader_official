@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm";
 
-const SUPABASE_URL = "https://qxqdicbhsnrjibwgypyi.supabase.co";
-const SUPABASE_KEY = "sb_publishable_SwNW0kTerjBWjfTNl6s_zw_Ra5YxmB1";
+const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";
+const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N0PmQ_WNX7Pqsa";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 });
@@ -57,7 +57,18 @@ function fmtDate(value, opts={dateStyle:"medium"}) { if(!value)return "—"; ret
 function fmtTime(value) { return value ? fmtDate(value,{hour:"2-digit",minute:"2-digit"}) : "—"; }
 function relative(value) { if(!value)return "—"; const ms=Date.now()-new Date(value).getTime(); if(ms<60000)return "just now"; if(ms<3600000)return Math.floor(ms/60000)+" min ago"; if(ms<86400000)return Math.floor(ms/3600000)+" hr ago"; return Math.floor(ms/86400000)+" days ago"; }
 function toast(message,type="success") { let box=$(".toast-stack"); if(!box){box=document.createElement("div");box.className="toast-stack";document.body.append(box)} const el=document.createElement("div");el.className="toast "+type;el.textContent=message;box.append(el);setTimeout(()=>el.remove(),4300); }
-function showError(error) { console.error(error); toast(error?.message || "Something went wrong. Please try again.", "error"); }
+function showError(error) {
+  console.error(error);
+  const raw=String(error?.message||error?.code||"Something went wrong. Please try again.");
+  let message=raw;
+  if(/email address not authorized/i.test(raw))message="Supabase default email sender cannot send to this address yet. The owner must configure a verified SMTP provider.";
+  else if(/email_not_confirmed|email not confirmed/i.test(raw))message="Your email is not confirmed yet. Open the confirmation link from your inbox, then sign in.";
+  else if(/email_provider_disabled|email provider.*disabled|signup_disabled|signups.*disabled/i.test(raw))message="Email signup is disabled in Supabase. The owner must enable Email provider and Allow new users to sign up.";
+  else if(/invalid login credentials/i.test(raw))message="Email or password is incorrect, or the email is not confirmed. Check your details or use Forgot password.";
+  else if(/user already registered|already been registered/i.test(raw))message="An account already exists for this email. Return to Sign in or use Forgot password.";
+  else if(/provider is not enabled/i.test(raw))message="This sign-in provider is not configured yet. Use email and password for now.";
+  toast(message,"error");
+}
 function pakiDayNo() { const now=localDate(); return Math.floor((new Date(now+"T00:00:00Z")-new Date("2026-12-01T00:00:00Z"))/86400000)+1; }
 function currentDayLabel() { const n=pakiDayNo(); if(n<1){const daysUntil=1-n;return "Challenge starts in "+daysUntil+" day"+(daysUntil===1?"":"s");} if(n>31)return "Challenge complete"; return "Day "+n+" · "+fmtDate("2026-12-"+String(n).padStart(2,"0")+"T12:00:00Z",{month:"short",day:"numeric",year:"numeric"}); }
 function datePeriodStart(period) { const today=localDate(); const d=new Date(today+"T00:00:00Z"); if(period==="today")return today; if(period==="week"){d.setUTCDate(d.getUTCDate()-6);return d.toISOString().slice(0,10)} if(period==="15d"){d.setUTCDate(d.getUTCDate()-14);return d.toISOString().slice(0,10)} return "0000-01-01"; }
@@ -254,7 +265,7 @@ function renderAuth() {
 function navigation() {
   const items=[
     ["dashboard","Overview","grid"],["challenge","Challenge Plan","calendar"],["notes","Quetex Official Signals","notes"],
-    ["demo","Market Checking · Demo Signals","chart"],["transactions","Withdrawals","wallet"],["community","Community","users"],
+    ["transactions","Withdrawals","wallet"],["community","Community","users"],
     ["analytics","Analytics","activity"],["notifications","Notifications","bell"],["inbox","Admin Inbox","message"],
     ...(state.isAdmin?[["admin","Admin Control","shield"]]:[]),["settings","Settings","settings"]
   ];
@@ -264,7 +275,7 @@ function renderShell() {
   if(!state.profile){app.innerHTML='<div class="boot"><img src="./logo.svg" width="70"><p>PREPARING YOUR SECURE WORKSPACE…</p></div>';return;}
   if(!state.isAdmin&&state.page==="admin")state.page="dashboard";
   document.body.classList.toggle("light",state.theme==="light");
-  const names={dashboard:["WORKSPACE","Dashboard"],challenge:["CHALLENGE / DECEMBER 2026","Challenge Plan"],notes:["OFFICIAL SIGNAL ARCHIVE","Quetex Official Signals"],demo:["PRACTICE ONLY","Market Checking · Demo Signals"],transactions:["MONEY MANAGER","Withdrawals"],community:["COMMUNITY","Community"],analytics:["PERFORMANCE","Analytics"],notifications:["ALERT CENTRE","Notifications"],inbox:["PRIVATE SUPPORT","Admin Inbox"],admin:["OWNER TOOLS","Admin Control"],settings:["PREFERENCES","Settings"]};
+  const names={dashboard:["WORKSPACE","Dashboard"],challenge:["CHALLENGE / DECEMBER 2026","Challenge Plan"],notes:["OFFICIAL SIGNAL ARCHIVE","Quetex Official Signals"],transactions:["MONEY MANAGER","Withdrawals"],community:["COMMUNITY","Community"],analytics:["PERFORMANCE","Analytics"],notifications:["ALERT CENTRE","Notifications"],inbox:["PRIVATE SUPPORT","Admin Inbox"],admin:["OWNER TOOLS","Admin Control"],settings:["PREFERENCES","Settings"]};
   const n=names[state.page]||names.dashboard;
   app.innerHTML='<div class="app-shell"><aside class="sidebar" id="sidebar"><div class="brand"><img src="./logo.svg" alt="Nexoventia"><div><div class="brand-name">NEXOVENTIA</div><div class="brand-sub">TRADING OPERATIONS</div></div></div>'+navigation()+'<div class="side-footer"><div class="status-pill"><i class="status-dot"></i> PRIVATE SESSION ACTIVE</div><div class="hint" style="padding:12px 4px 0">v1.0 · December challenge workspace</div></div></aside><main class="main"><header class="topbar"><div class="top-left"><button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Open navigation">'+icon("menu")+'</button><div><div class="eyebrow">'+n[0]+'</div><div class="page-title">'+n[1]+'</div></div></div><div class="top-actions"><div class="search-wrap"><label class="search-box">'+icon("search")+'<input id="globalSearch" placeholder="Search this workspace" value="'+esc(state.globalSearch)+'"></label><div id="searchResults" class="search-results" hidden></div></div><button class="icon-btn" data-page="notifications" aria-label="Notifications">'+icon("bell")+'</button><button class="icon-btn" data-page="settings" aria-label="Settings">'+icon("settings")+'</button><div class="avatar" title="'+esc(state.profile.display_name)+'">'+(state.profile.avatar_path?'<img data-media-path="'+esc(state.profile.avatar_path)+'" alt="">':esc(initials(state.profile.display_name)))+'</div></div></header><section class="page" id="pageContent">'+renderPage()+'</section></main></div><nav class="mobile-nav">'+[["dashboard","Overview","grid"],["challenge","Plan","calendar"],["notes","Notes","notes"],["community","Community","users"],["analytics","Stats","chart"]].map(([id,t,ic])=>'<button data-page="'+id+'" class="'+(state.page===id?"active":"")+'">'+icon(ic)+'<span>'+t+'</span></button>').join("")+'</nav><div id="modal-root"></div>';
   document.title="Nexoventia · "+n[1];
@@ -286,7 +297,7 @@ function renderGlobalSearchResults(){
   }
   for(const signal of state.signals){
     const hay=(signal.pair+" "+signal.direction+" "+signal.timeframe+" "+signal.outcome+" "+signal.day_no).toLowerCase();
-    if(hay.includes(q))add(signal.pair+" · "+signal.direction,signal.feed.toUpperCase()+" · "+signal.outcome.toUpperCase()+" · "+fmtDate(signal.issued_at),signal.feed==="official"?"notes":"demo");
+    if(signal.feed==="official"&&hay.includes(q))add(signal.pair+" · "+signal.direction,signal.feed.toUpperCase()+" · "+signal.outcome.toUpperCase()+" · "+fmtDate(signal.issued_at),"notes");
   }
   for(const withdrawal of state.withdrawals){
     const hay=(withdrawal.amount+" "+withdrawal.note+" "+withdrawal.day_no+" "+withdrawal.created_at).toLowerCase();
@@ -321,7 +332,6 @@ function renderPage() {
     case "dashboard":return renderDashboard();
     case "challenge":return renderChallenge();
     case "notes":return renderSignalFeed("official");
-    case "demo":return renderSignalFeed("demo");
     case "transactions":return renderTransactions();
     case "community":return renderCommunity();
     case "analytics":return renderAnalytics();
@@ -490,11 +500,11 @@ function renderCommunity() {
   const title=updates?"Quetex Updates":"Discussion Group";
   const desc=updates?"Admin-only announcement room. Members can read and receive updates.":"Open group chat. Members can message, reply and share photos, videos, voice notes, GIFs, stickers and files.";
   const compose=updates&&!state.isAdmin?'<div class="alert info">This room is announcement-only. Only the Nexoventia admin can publish here.</div>':'<div class="chat-compose"><button class="icon-btn" id="attachFiles" title="Attach media">'+icon("image")+'</button><input id="chatFiles" type="file" accept="image/*,video/mp4,video/webm,audio/*,application/pdf" multiple><textarea id="chatText" placeholder="'+(updates?"Write an announcement…":"Write a message to the community…")+'"></textarea><button class="icon-btn" id="recordVoice" title="Record voice note">'+icon("mic")+'</button><button class="icon-btn" id="stickerTrayToggle" title="Open sticker tray">'+icon("notes")+'</button><button class="btn-primary" id="sendMessage" aria-label="Send message">'+icon("send")+'</button></div>';
-  return pageHead("COMMUNITY · MODERATED ROOMS","Community","Four shared rooms. Members can post only in the Discussion Group; all other rooms are read-only for members.")+
+  return pageHead("COMMUNITY · MODERATED ROOMS","Community","Three shared rooms. Members can post only in the Discussion Group; all other rooms are read-only for members.")+
   '<div class="panel chat-layout"><aside class="chat-rooms"><div class="eyebrow" style="padding:3px 8px 10px">COMMUNITY ROOMS</div>'+
   '<button class="room-btn '+(updates?"active":"")+'" data-community-mode="updates"><span class="room-avatar">'+icon("bell")+'</span><span><div class="room-title">Quetex Updates</div><div class="room-sub">ADMIN POSTS ONLY</div></span></button>'+
   '<button class="room-btn" data-page="notes"><span class="room-avatar">'+icon("chart")+'</span><span><div class="room-title">Quetex Official Signals</div><div class="room-sub">ADMIN SIGNALS · READ ONLY</div></span></button>'+
-  '<button class="room-btn" data-page="demo"><span class="room-avatar">'+icon("activity")+'</span><span><div class="room-title">Market Checking · Demo Signals</div><div class="room-sub">ADMIN DEMO POSTS</div></span></button>'+
+  
   '<button class="room-btn '+(!updates?"active":"")+'" data-community-mode="discussion"><span class="room-avatar">'+icon("users")+'</span><span><div class="room-title">Discussion Group</div><div class="room-sub">MEMBER CHAT OPEN</div></span></button>'+
   '<div class="divider"></div><div class="hint">Private messages are limited to member ↔ admin. Members cannot message one another privately.</div></aside>'+
   '<section class="chat-main"><header class="chat-header"><div><div class="panel-title">'+title+'</div><div class="hint">'+desc+'</div></div><span class="tag">'+(updates?"ADMIN ONLY":"ALL MEMBERS")+'</span></header><div class="chat-feed" id="chatFeed">'+empty("Loading messages","The newest messages will appear here.","message")+'</div>'+compose+'<div class="sticker-tray" id="stickerTray" hidden>'+[["market-pulse","Market pulse","activity"],["trend-watch","Trend watch","chart"],["signal-ready","Signal ready","activity"],["verified","Reviewed","shield"],["stay-focused","Stay focused","lock"],["learning-mode","Learning mode","notes"],["time-check","Time check","clock"],["team-talk","Team discussion","users"]].map(([id,label,ic])=>'<button class="sticker-choice" data-sticker="'+id+'" type="button"><span>'+icon(ic)+'</span><b>'+label+'</b></button>').join("")+'</div></section></div>';
@@ -629,7 +639,7 @@ function renderAdmin() {
   metric("Total withdrawals",money(state.withdrawals.reduce((s,w)=>s+Number(w.amount),0)),state.withdrawals.length+" receipt records","wallet")+'</div>'+
   '<div class="grid grid-3" style="margin-top:15px"><section class="panel panel-pad"><div class="eyebrow">STARTING BALANCE</div><h3 class="panel-title" style="margin:10px 0">Set the initial account amount</h3><p class="panel-sub">This is the Day 1 opening reference used only for recorded P/L calculations.</p><form id="startingBalanceForm" class="form-grid" style="margin-top:12px"><div class="field"><label>STARTING BALANCE (USD)</label><input name="amount" type="number" min="0" step=".01" required value="'+esc(state.appState.starting_balance ?? 10)+'"></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Save baseline</button></div></form></section><section class="panel panel-pad"><div class="eyebrow">NEXT SIGNAL SESSION</div><div class="countdown" id="countdownLarge" style="font-size:36px;margin:15px 0">'+countdownText(next)+'</div><div class="hint">'+(next?"All members can see this shared countdown.":"No next session countdown has been set.")+'</div><form id="sessionForm" class="form-grid" style="margin-top:15px"><div class="field"><label>START IN (MINUTES)</label><input name="minutes" type="number" min="1" max="10080" required placeholder="e.g. 30"></div><div class="field" style="align-self:end"><button class="btn-primary" type="submit">Set shared countdown</button></div></form><button class="btn-subtle btn-small" id="clearCountdown" style="margin-top:9px">Clear countdown</button></section>'+
   '<section class="panel panel-pad"><div class="eyebrow">DAY CLOSE · '+(currentOpen?"DAY "+currentOpen.day_no:"CALENDAR")+'</div><h3 class="panel-title" style="margin:10px 0">Record actual closing balance</h3><p class="panel-sub">Enter the remaining account balance only. The next day carries this recorded close forward automatically.</p><button class="btn-primary" data-close-day="'+(currentOpen?.day_no||1)+'" style="margin-top:16px">Open day-close form</button><div class="divider"></div><div class="hint">Actual balance is never overwritten by the planned target. Corrections are preserved in the audit log.</div></section></div>'+
-  '<div class="section-row"><div><h3>Quick publishing tools</h3><p>All signal actions are recorded in the shared archive</p></div></div><div class="inline-actions"><button class="btn-primary" data-new-feed="official">Publish official signal</button><button class="btn-subtle" data-new-feed="demo">Publish demo signal</button><button class="btn-subtle" data-action="new-withdrawal">Add withdrawal receipt</button><button class="btn-subtle" data-action="new-update">Post an update</button></div>'+
+  '<div class="section-row"><div><h3>Quick publishing tools</h3><p>All signal actions are recorded in the shared archive</p></div></div><div class="inline-actions"><button class="btn-primary" data-new-feed="official">Publish official signal</button><button class="btn-subtle" data-action="new-withdrawal">Add withdrawal receipt</button><button class="btn-subtle" data-action="new-update">Post an update</button></div>'+
   '<div class="grid grid-2" style="margin-top:18px"><section class="panel panel-pad"><div class="section-row" style="margin:0 0 12px"><div><h3>Online members</h3><p>Only the owner can see the online member list</p></div><span class="tag">'+online.length+' ONLINE</span></div>'+(online.length?'<div class="online-list">'+online.map(p=>{const u=profileBy(p.user_id);return '<div class="online-user"><div class="avatar">'+esc(initials(u?.display_name))+'</div><div><strong style="font-size:11px">'+esc(u?.display_name||"Member")+'</strong><small>'+esc(u?.username||"")+' · '+relative(p.last_seen)+'</small></div><i class="online-indicator"></i><button class="btn-small btn-subtle" data-message-user="'+p.user_id+'">Message</button></div>'}).join("")+'</div>':empty("No members online","Online presence is updated when a member has the app open.","users"))+'</section>'+
   '<section class="panel panel-pad"><div class="section-row" style="margin:0 0 12px"><div><h3>Member directory</h3><p>Open a private admin conversation</p></div><span class="tag">'+userRows.length+' MEMBERS</span></div>'+(userRows.length?'<div class="online-list">'+userRows.slice(0,12).map(u=>'<div class="online-user"><div class="avatar">'+esc(initials(u.display_name))+'</div><div><strong style="font-size:11px">'+esc(u.display_name)+'</strong><small>@'+esc(u.username||"member")+'</small></div><button class="btn-small btn-subtle" data-message-user="'+u.id+'">DM</button></div>').join("")+'</div>':empty("No members yet","New accounts will appear here.","users"))+'</section></div>'+
   '<div class="section-row"><div><h3>Audit history</h3><p>Most recent admin changes to signals, withdrawals and day closes</p></div></div>'+
