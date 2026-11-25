@@ -10,7 +10,7 @@ const sw = read("sw.js");
 const manifest = JSON.parse(read("manifest.webmanifest"));
 const readme = read("README.md");
 const setup = read("SETUP.md");
-const migration = read("supabase/migrations/20261125110000_move_mfa_policy_helper_to_private_schema.sql");
+const migration = read("supabase/migrations/20261125105653_move_mfa_policy_helper_to_private_schema.sql");
 
 const days = [...schema.matchAll(/^\((\d+),'(2026-12-\d{2})',(null|\d+),(null|\d+),(\d+),(true|false),(true|false),'([^']*)'\),?$/gm)]
   .map(m => ({
