@@ -1,9 +1,8 @@
--- NEXOVENTIA Trading Operations Hub — LIVE DATABASE REFERENCE
--- ACTIVE PROJECT REF: qxqdicbhsnrjibwgypyi
--- REGION: ap-southeast-2 (Sydney)
--- Review snapshot only; DO NOT execute over the initialized production DB.
--- Supabase migration history is the DDL source of truth.
---
+-- NEXOVENTIA — ARCHIVED schema reference from the previous Supabase project
+-- Historical project ref: qxqdicbhsnrjibwgypyi (ap-southeast-2, Sydney)
+-- NOT the active backend. Current connected backend: dbsgvcfvlnhwecyfsxib (ap-south-1, Mumbai).
+-- DO NOT execute this file against any project. It is retained only for historical comparison.
+-- The active backend's applied migration history is the source of truth.
 -- Applied production migrations:
 -- 20261125102742 nexoventia_trading_hub_core
 -- 20261125102859 nexoventia_auth_permissions_and_audit
