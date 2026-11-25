@@ -1,29 +1,28 @@
 -- NEXOVENTIA Trading Operations Hub — LIVE DATABASE REFERENCE
--- Supabase project: nexoventia-trading-hub
--- Project ref: dbsgvcfvlnhwecyfsxib
--- ACTIVE PROJECT REF: dbsgvcfvlnhwecyfsxib
--- Region: ap-south-1 (Mumbai)
--- REGION: ap-south-1
+-- Active Supabase project ref: qxqdicbhsnrjibwgypyi
+-- Region: ap-southeast-2 (Sydney)
 --
 -- IMPORTANT: This is a reference snapshot for review and validation.
 -- It is not a standalone migration and must not be executed over production.
--- The authoritative DDL history is Supabase migration history.
+-- The live Supabase migration history is the DDL source of truth.
 --
--- Applied production migrations:
--- 20261125101825 nexoventia_initial_schema
--- 20261125101849 tighten_rls_and_fk_indexes
--- 20261125102728 signup_username_and_member_notifications
--- 20261125103044 add_initial_balance_setting
--- 20261125104216 enforce_aal2_for_enrolled_mfa_users
--- 20261125105653 move_mfa_policy_helper_to_private_schema
--- 20261125111417 tighten_browser_role_privileges
+-- Applied live database migrations:
+-- 20261125102742 nexoventia_trading_hub_core
+-- 20261125102859 nexoventia_auth_permissions_and_audit
+-- 20261125102932 nexoventia_private_message_reads_and_audit_fix
+-- 20261125103557 move_admin_helper_to_private_schema
+-- 20261125103743 tighten_write_policies_and_index_relations
+-- 20261125104127 day12_clarification_and_shared_notifications
+-- 20261125104217 index_legacy_audit_reference
+-- 20261125110440 tighten_public_table_and_sequence_grants
+-- 20261125110751 enforce_aal2_for_verified_mfa_users
 --
 -- Admin authorization:
--- public.is_admin() is SECURITY INVOKER and reads only the trusted
--- auth.jwt() -> 'app_metadata' ->> 'role' claim.
--- The UI also requires profiles.role='admin'. User-editable user_metadata
--- is never an authorization source. The owner bootstrap process updates
--- auth.users.raw_app_meta_data and profiles.role, then refreshes the session.
+-- private.is_admin() is SECURITY DEFINER in the non-exposed private schema,
+-- has a pinned empty search_path, and checks public.profiles.role='admin'
+-- for auth.uid(). Browser users cannot update their own role column.
+-- The frontend reads the profile role; authorization remains enforced by RLS.
+-- User-editable auth metadata is not an authorization source.
 --
 -- MFA:
 -- private.mfa_session_allowed() is SECURITY DEFINER in the non-exposed
@@ -44,7 +43,7 @@
 -- Members can insert messages only when channel='discussion'; admins can
 -- publish to the Updates and signal rooms. Users may delete only their own
 -- Discussion Group messages; admins can moderate.
--- Live WITH CHECK expression: channel='discussion' OR public.is_admin(),
+-- Live WITH CHECK expression: channel='discussion' OR private.is_admin(),
 -- combined with user_id=auth.uid().
 --
 -- Private inbox:
@@ -67,7 +66,7 @@
 -- TRUNCATE is revoked from anon and authenticated on every public table.
 -- profiles.role is not updateable through the browser; profile edits are
 -- limited to display_name, username, avatar_path, bio and updated_at.
--- public.is_admin() EXECUTE is granted to authenticated because RLS invokes it.
+-- private.is_admin() EXECUTE is granted to authenticated because RLS invokes it.
 -- Trigger functions remain callable by their trigger owner, not browser roles.
 --
 -- Realtime publication includes signals, withdrawals, day_closes, messages,
