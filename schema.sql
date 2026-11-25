@@ -1,6 +1,7 @@
 -- NEXOVENTIA Trading Operations Hub — LIVE DATABASE REFERENCE
 -- Supabase project: nexoventia-trading-hub
 -- Project ref: dbsgvcfvlnhwecyfsxib
+-- ACTIVE PROJECT REF: dbsgvcfvlnhwecyfsxib
 -- Region: ap-south-1 (Mumbai)
 --
 -- IMPORTANT: This is a reference snapshot for review and validation.
