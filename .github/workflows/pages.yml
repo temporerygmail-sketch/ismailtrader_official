@@ -1,6 +1,8 @@
-name: Deploy Nexoventia to GitHub Pages
+name: Validate and Deploy Nexoventia
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
@@ -11,10 +13,8 @@ concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
+    name: Static and plan validation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,17 +23,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Validate JavaScript
-        run: node --check app.js
-      - name: Validate required app files
+      - name: Run syntax and product checks
+        run: npm run check
+      - name: Validate required assets
         run: |
           test -s index.html
           test -s styles.css
           test -s app.js
           test -s schema.sql
           test -s logo.svg
-          grep -q 'id="app"' index.html
-          grep -q 'nexoventia-media' schema.sql
+          test -s manifest.webmanifest
+          test -s sw.js
+  deploy:
+    name: Publish GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site

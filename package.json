@@ -1,0 +1,9 @@
+{
+  "name": "nexoventia-trading-hub",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node scripts/validate.mjs"
+  }
+}
