@@ -30,7 +30,7 @@ In **Authentication → Sign In / Providers → Email**, make sure:
 - Allow new users to sign up is enabled.
 - Email confirmation can remain enabled. When enabled, users must click the confirmation link before their first sign-in.
 
-After signup, check Inbox and Spam/Junk for the confirmation email. Supabase's default sender is intended only for limited testing; dependable delivery requires a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of this repository and frontend files.
+After signup, check Inbox and Spam/Junk for the confirmation email. Important: Supabase's built-in sender only sends to addresses belonging to your Supabase organization's team and is limited to 2 emails per hour. It will not reliably send confirmations to ordinary member Gmail addresses. To let members register with their own email addresses, configure a verified SMTP provider in Supabase Auth. Keep SMTP credentials out of this repository and frontend files.
 
 Google sign-in is currently hidden because the Google provider is not enabled in the connected Supabase project. Email/password is the supported login and signup method. Do not show Google as an available sign-in method until its OAuth Client ID and Secret are configured in Supabase.
 
