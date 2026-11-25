@@ -1,65 +1,60 @@
 -- NEXOVENTIA Trading Operations Hub — production reference snapshot
--- ACTIVE PROJECT: dbsgvcfvlnhwecyfsxib
--- Region: ap-south-1 (Mumbai)
--- This file documents the LIVE database security model and December plan.
--- It is NOT a standalone migration. Do not run it blindly on production.
--- Live migration history is maintained by Supabase.
-
--- Trusted admin authorization: only app_metadata is used (not user_metadata).
-create or replace function public.is_admin()
-returns boolean
-language sql stable security invoker
-set search_path = ''
-as $function$
-  select coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false);
-$function$;
-
--- MFA helper lives outside exposed schemas.
--- create schema if not exists private;
--- The live helper is private.mfa_session_allowed(), SECURITY DEFINER,
--- with EXECUTE granted only to authenticated users.
--- It requires aal2 when the current user has a verified TOTP factor.
--- All MFA policies are AS RESTRICTIVE FOR ALL TO authenticated.
--- This is an extra condition; permissive room/table rules do not override MFA.
-
--- Live public tables. RLS is enabled on every table listed below.
--- Reference: alter table public.profiles enable row level security;
--- Reference: alter table public.challenge_days enable row level security;
--- Reference: alter table public.signals enable row level security;
--- Reference: alter table public.withdrawals enable row level security;
--- Reference: alter table public.day_closes enable row level security;
--- Reference: alter table public.messages enable row level security;
--- Reference: alter table public.private_messages enable row level security;
--- Reference: alter table public.user_presence enable row level security;
--- Reference: alter table public.app_state enable row level security;
--- Reference: alter table public.notifications enable row level security;
--- Reference: alter table public.activity_logs enable row level security;
-
+-- ACTIVE PROJECT: qxqdicbhsnrjibwgypyi
+-- Region: ap-southeast-2 (Sydney)
+-- This file documents the connected LIVE database model and December plan.
+-- It is a reference snapshot, NOT a standalone migration. Do not execute it
+-- against an existing database. Supabase migration history is the DDL source of truth.
+--
+-- Authorization:
+-- Admin checks use private.is_admin(), a SECURITY DEFINER helper in the
+-- non-exposed private schema. It reads public.profiles.role='admin'.
+-- User-editable auth metadata is never an authorization source. Members
+-- cannot change their own role; only an existing admin can promote a profile.
+--
+-- MFA:
+-- private.mfa_session_allowed() checks auth.mfa_factors. Users with a verified
+-- factor must hold a JWT with aal='aal2'. Users without a verified factor may
+-- use their normal authenticated session. Restrictive AAL2 policies cover all
+-- public application tables and the private nexoventia-media storage bucket.
+--
+-- Public tables with Row Level Security enabled:
+-- profiles, challenge_days, signals, withdrawals, day_closes, messages,
+-- private_messages, user_presence, app_state, notifications, activity_logs,
+-- audit_log. The live private schema also contains private.is_admin() and
+-- private.mfa_session_allowed().
+--
 -- Shared read model:
--- profiles, challenge_days, signals, withdrawals, day_closes and messages
--- are readable to signed-in members under authenticated RLS policies.
--- Actual writes to signals, withdrawals, day_closes, challenge_days, app_state,
--- updates-channel messages and administrative notifications are owner-only.
-
--- Community posting check (exact logical condition used by the live policy):
--- channel='discussion' or public.is_admin()
--- Members can post only in Discussion Group. Quetex Updates is admin-only.
-
--- Private messages route:
--- A member may send only when recipient_id resolves to a profile with role='admin'.
--- An admin may send to an individual member. Member-to-member DMs are denied.
--- The live RLS condition checks recipient_id against profiles.role='admin'.
-
+-- challenge calendar, official/demo signal records, day closes, withdrawal
+-- receipts, community posts and notifications are shared read-only to signed-in
+-- members. Only the admin can publish signals/updates, record outcomes,
+-- withdrawals, day closes and shared app state.
+--
+-- Community posting condition: channel='discussion' OR private.is_admin().
+-- Members can post only in Discussion Group. Quetex Updates and both signal
+-- rooms are admin-published.
+--
+-- Private inbox:
+-- A member may send only to a profile whose role is admin. Admins can message
+-- an individual member. Member-to-member DMs are blocked by RLS.
+--
 -- Media:
 -- Bucket: nexoventia-media (private; 50 MB per object).
--- Allowed types: JPEG, PNG, WebP, GIF, MP4, WebM, MP3, PDF.
--- Uploads are scoped to the signed-in user's folder; admins may manage shared media.
--- Signed URLs are used for private media display.
-
+-- Allowed types include JPEG, PNG, WebP, GIF, MP4, WebM, MP3, PDF.
+-- Uploads are scoped to the signed-in user's folder; authenticated members
+-- can read the shared archive, subject to MFA AAL2 enforcement when enrolled.
+--
 -- Realtime publication:
--- signals, withdrawals, day_closes, messages, private_messages, app_state, notifications.
--- Notification trigger: create trigger notify_signal_events after insert or update on public.signals.
-
+-- signals, withdrawals, day_closes, messages, private_messages, app_state,
+-- notifications. Database triggers create shared notifications and audit rows.
+--
+-- Least-privilege browser ACLs:
+-- REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+-- REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+-- REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+-- Then the connected project grants only the operations needed by the frontend.
+-- Neither anon nor authenticated has TRUNCATE privileges. New objects created
+-- by the postgres migration owner do not inherit blanket browser-role grants.
+--
 -- December 2026 challenge plan.
 -- Columns: day_no, calendar_date, target_min, target_max, planned_withdrawal,
 --          is_rest_day, clarification_needed, admin_note.
