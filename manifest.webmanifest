@@ -1,1 +1,20 @@
-{"id":"./","name":"Nexoventia Trading Hub","short_name":"Nexoventia","description":"Challenge records, community and demo signal journal.","start_url":"./","scope":"./","display":"standalone","orientation":"any","background_color":"#080a16","theme_color":"#080a16","icons":[{"src":"./logo.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "id": "./",
+  "name": "Nexoventia — Trading Operations Hub",
+  "short_name": "Nexoventia",
+  "description": "Shared challenge records, community, signal history and withdrawals.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080a16",
+  "theme_color": "#080a16",
+  "icons": [
+    {
+      "src": "./logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
