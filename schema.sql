@@ -1,29 +1,31 @@
 -- NEXOVENTIA Trading Operations Hub — LIVE DATABASE REFERENCE
--- ACTIVE PROJECT REF: dbsgvcfvlnhwecyfsxib
--- REGION: ap-south-1 (Mumbai)
+-- ACTIVE PROJECT REF: qxqdicbhsnrjibwgypyi
+-- REGION: ap-southeast-2 (Sydney)
 -- Review snapshot only; DO NOT execute over the initialized production DB.
 -- Supabase migration history is the DDL source of truth.
 --
 -- Applied production migrations:
--- 20261125101825 nexoventia_initial_schema
--- 20261125101849 tighten_rls_and_fk_indexes
--- 20261125102728 signup_username_and_member_notifications
--- 20261125103044 add_initial_balance_setting
--- 20261125104216 enforce_aal2_for_enrolled_mfa_users
--- 20261125105653 move_mfa_policy_helper_to_private_schema
--- 20261125111417 tighten_browser_role_privileges
+-- 20261125102742 nexoventia_trading_hub_core
+-- 20261125102859 nexoventia_auth_permissions_and_audit
+-- 20261125102932 nexoventia_private_message_reads_and_audit_fix
+-- 20261125103557 move_admin_helper_to_private_schema
+-- 20261125103743 tighten_write_policies_and_index_relations
+-- 20261125104127 day12_clarification_and_shared_notifications
+-- 20261125104217 index_legacy_audit_reference
+-- 20261125110440 tighten_public_table_and_sequence_grants
+-- 20261125110751 enforce_aal2_for_verified_mfa_users
 --
--- Admin auth: public.is_admin() SECURITY INVOKER checks trusted
--- auth.jwt()->'app_metadata'->>'role'='admin'. UI also requires
--- profiles.role='admin'; user-editable user_metadata is not trusted.
+-- Admin auth: private.is_admin() SECURITY DEFINER checks the current
+-- auth.uid() against public.profiles.role='admin'. The UI uses the same
+-- profile role; user-editable user_metadata is not trusted.
 -- MFA: private.mfa_session_allowed() SECURITY DEFINER lives in the
 -- non-exposed private schema. Verified TOTP requires AAL2; restrictive MFA
 -- policies cover application tables and private nexoventia-media storage.
 --
 -- RLS tables: profiles, challenge_days, signals, withdrawals, day_closes,
 -- messages, private_messages, user_presence, app_state, notifications,
--- activity_logs.
--- Community insert policy: channel='discussion' OR public.is_admin(),
+-- activity_logs, audit_log.
+-- Community insert policy: channel='discussion' OR private.is_admin(),
 -- with user_id=auth.uid(). Members can post only in Discussion Group;
 -- Updates and signal channels are admin-published.
 -- Private DM policy checks recipient_id against a profile with role='admin'.
@@ -32,7 +34,7 @@
 --
 -- Least privilege: anon has no application table/sequence/function grants.
 -- TRUNCATE is revoked from anon/authenticated. profiles.role cannot be
--- updated by browser clients. public.is_admin() execute is granted to auth.
+-- updated by browser clients. Private schema helper access is restricted.
 -- Storage bucket nexoventia-media is private, 50 MB per object; signed URLs.
 --
 -- December 2026 challenge tuples:
