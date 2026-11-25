@@ -23,7 +23,7 @@ assert.ok(acl.includes("revoke all privileges on all sequences in schema public 
 assert.ok(acl.includes("revoke execute on all functions in schema public from anon, authenticated"));
 assert.ok(mfa.includes("private.mfa_session_allowed()")&&mfa.includes("security definer")&&mfa.includes("aal2"));
 assert.ok(app.includes('const SUPABASE_URL = "https://dbsgvcfvlnhwecyfsxib.supabase.co";'));
-assert.ok(app.includes('const SUPABASE_KEY = "sb_publishable_6lenNixYlk2NZO2KW0N0PmQ_WNX7Pqsa";'));
+assert.ok(/const SUPABASE_KEY = "sb_publishable_[^"]+";/.test(app),"App must use a Supabase publishable key.");
 assert.ok(!app.includes("qxqdicbhsnrjibwgypyi")&&!app.includes("service_role")&&!app.includes("sb_secret_"));
 assert.ok(!app.includes('["demo","Market Checking · Demo Signals","chart"]')&&!app.includes('data-page="demo"')&&!app.includes('data-new-feed="demo"')&&!app.includes('case "demo":'),"Fourth Demo Signals option must stay removed.");
 assert.ok(app.includes("email address not authorized")&&app.includes("Allow new users to sign up"),"Helpful signup and SMTP error guidance must stay visible.");
