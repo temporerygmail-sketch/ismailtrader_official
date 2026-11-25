@@ -48,7 +48,7 @@ The Google sign-in button is already in the app. It works only after owner-provi
 1. In Google Cloud Console, create an OAuth Client ID of type Web application.
 2. Add Authorized JavaScript origin: `https://temporerygmail-sketch.github.io`.
 3. Add Authorized redirect URI: `https://qxqdicbhsnrjibwgypyi.supabase.co/auth/v1/callback`.
-4. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Client ID and Client Secret.
+4. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Google Client ID and Client Secret.
 5. Confirm the GitHub Pages URL is in the Supabase Redirect URLs allow-list.
 
 Keep the Google Client Secret inside Supabase provider settings only. Never commit it to GitHub or add it to browser JavaScript.
