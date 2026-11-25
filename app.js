@@ -15,7 +15,7 @@ const state = {
   communityMode: "discussion", selectedInboxUser: "", inboxMessages: [],
   replyTo: null, queuedFiles: [], mediaCache: {}, toastTimer: null,
   recording: null, recordingStream: null, theme: localStorage.getItem("nx-theme") || "dark",
-  mfaFactor: null, mfaQr: "", mfaSecret: "", globalSearch: ""
+  mfaFactor: null, mfaQr: "", mfaSecret: "", mfaPendingFactor: null, mfaChallengeId: null, mfaBusy: false, globalSearch: ""
 };
 const $ = (sel, root=document) => root.querySelector(sel);
 const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
@@ -167,10 +167,46 @@ function notify(title,body) {
 }
 async function authChanged(session) {
   state.session=session;state.user=session?.user||null;
-  if(!session){stopRuntime();state.profile=null;state.isAdmin=false;state.loading=false;render();return;}
+  if(!session){stopRuntime();state.profile=null;state.isAdmin=false;state.mfaPendingFactor=null;state.mfaChallengeId=null;state.loading=false;render();return;}
+  try{
+    const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(!assuranceError&&assurance?.nextLevel==="aal2"&&assurance.currentLevel!=="aal2"){
+      const {data:factors,error:factorsError}=await supabase.auth.mfa.listFactors();
+      if(!factorsError){
+        const verified=(factors?.totp||[]).find(f=>f.status==="verified");
+        if(verified){
+          const {data:challenge,error:challengeError}=await supabase.auth.mfa.challenge({factorId:verified.id});
+          if(challengeError)throw challengeError;
+          state.mfaPendingFactor=verified.id;state.mfaChallengeId=challenge.id;state.loading=false;renderMfaChallenge();return;
+        }
+      }
+    }
+  }catch(error){showError(error);state.loading=false;renderAuth();return;}
+  state.mfaPendingFactor=null;state.mfaChallengeId=null;
   state.loading=true;render();
   await loadData();startRuntime();
 }
+async function renderMfaChallenge(){
+  app.innerHTML='<div class="auth-page"><section class="auth-story"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECURE MEMBER ACCESS</span></div></div><div class="eyebrow" style="margin-top:54px">ADDITIONAL SECURITY CHECK</div><h1>Verify your<br><em>authenticator.</em></h1><p>Two-factor authentication is enabled for this account. Enter the current six-digit code from your authenticator app to continue.</p><div class="hero-chips"><span class="chip"><i class="chip-dot"></i> TOTP verification required</span><span class="chip">Private session</span></div><div class="auth-visual"></div></section><section class="auth-card-wrap"><div class="auth-card panel"><div class="auth-logo"><img src="./logo.svg" alt=""><div><strong>NEXOVENTIA</strong><span>SECOND FACTOR</span></div></div><div style="height:26px"></div><h2>Enter verification code</h2><p>Open your authenticator app and enter the current code. Do not share this code with anyone.</p><form id="mfaLoginForm" class="auth-form"><div class="field"><label>6-DIGIT AUTHENTICATOR CODE</label><input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required placeholder="000000"></div><button class="btn-primary" type="submit">Verify and continue</button></form><div class="auth-links"><span>Lost access to your authenticator?</span><button class="text-link" id="mfaRecoveryHelp">Account recovery</button></div><div class="hint" style="margin-top:14px">Account recovery requires identity verification by the owner. Never send an OTP or password in a group chat.</div></div></section></div>';
+  $("#mfaLoginForm")?.addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(state.mfaBusy)return;
+    const codeValue=String(new FormData(e.currentTarget).get("code")||"").trim();
+    if(!/^[0-9]{6}$/.test(codeValue)){toast("Enter a valid six-digit code.","error");return;}
+    state.mfaBusy=true;
+    const button=e.currentTarget.querySelector("button");button.disabled=true;button.textContent="Verifying…";
+    try{
+      const {error}=await supabase.auth.mfa.verify({factorId:state.mfaPendingFactor,challengeId:state.mfaChallengeId,code:codeValue});
+      if(error)throw error;
+      state.mfaPendingFactor=null;state.mfaChallengeId=null;
+      const {data,error:getError}=await supabase.auth.getSession();if(getError)throw getError;
+      await authChanged(data.session);
+    }catch(error){showError(error);button.disabled=false;button.textContent="Verify and continue"}
+    finally{state.mfaBusy=false}
+  });
+  $("#mfaRecoveryHelp")?.addEventListener("click",()=>toast("For security, authenticator reset must be handled by the project owner after verifying your identity. Do not share passwords or OTP codes.","error"));
+}
+
 supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>authChanged(session),0)});
 
 function renderAuth() {
