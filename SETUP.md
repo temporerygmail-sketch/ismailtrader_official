@@ -99,7 +99,8 @@ These permissions are enforced through database Row Level Security, not just hid
 - Nine planned withdrawals total $226.
 - Day 12 remains $25–$43 pending clarification; do not silently change it.
 - The initial $10 baseline is provisional. The owner should confirm the actual starting account balance before using it for P/L calculations.
-- The owner enters only the actual closing balance at day end. Recorded withdrawals are separate. The next day's opening balance carries forward from the actual prior close.
+- Target ranges on scheduled withdrawal days are pre-withdrawal targets. The owner enters only the remaining actual account balance after the day's withdrawal as the day close. The withdrawal stays in its own record. The next day's opening balance carries forward from that post-withdrawal close.
+- Day 31's $98–$112 target is before the $82 withdrawal. At the $112 upper target, the actual post-withdrawal account close is $30.
 - Corrections must be made as owner actions and reviewed against the audit history.
 - No record in this app changes a Quotex account or executes a trade.
 

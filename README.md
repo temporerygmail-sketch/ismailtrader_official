@@ -10,7 +10,7 @@ https://temporerygmail-sketch.github.io/ismailtrader_official/
 
 - December 1–31, 2026 challenge plan, with 28 active days and rest days on December 14, 21 and 28.
 - Original target ranges and nine planned withdrawals totalling $226. Day 12 remains $25–$43 and requires owner clarification.
-- Actual daily close records entered by the owner; actual balance never gets silently replaced by the planned target.
+- Target ranges on withdrawal days represent the balance before that day's withdrawal. Actual day-close records are the remaining account balance after the withdrawal; the next day carries forward from this actual close.
 - Shared official and demo signal archives with pair, timeframe, direction, demo amount, issue/expiry time, before screenshot, Win/Loss/Refund result and after screenshot.
 - Dashboard with daily, weekly and all-time signal snapshots, registered account count, withdrawal totals, recorded P/L, profit/loss days and actual balance history.
 - Read-only shared challenge, signal notes and withdrawal receipt pages for members.
@@ -40,7 +40,7 @@ Read [SETUP.md](./SETUP.md) before inviting members. The owner must create and v
 ## Important limitations
 
 - This app is a manual record-keeping and educational demo-signal workspace. It does not connect to Quotex, execute orders, fetch broker balances, independently verify broker outcomes or promise returns.
-- The $10 starting-balance baseline is provisional until the owner confirms the actual starting account balance.
+- The $10 starting-balance baseline is provisional until the owner confirms the actual starting account balance. Day 31's $98–$112 is pre-withdrawal; an $82 withdrawal leaves $16–$30, so a $112 pre-withdrawal balance leaves $30 in the account.
 - Signal outcomes are entered by the owner and are not independently verified market results.
 - Supabase's default email sender is for light testing; dependable member signup/password reset requires a verified SMTP provider.
 - Google sign-in remains unavailable until the owner configures a Google OAuth Client ID and Client Secret in Supabase.

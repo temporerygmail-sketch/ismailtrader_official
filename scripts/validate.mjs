@@ -65,6 +65,8 @@ assert.match(app,/function renderSignalSnapshot/,"Daily, weekly and all-time das
 assert.match(app,/data-action="new-update"/,"Admin update shortcut must open Updates");
 assert.match(app,/Registered accounts/,"Account count must appear in the dashboard");
 assert.match(app,/Profit days/,"Profit day metric required");
+assert.match(app,/PRE-WITHDRAWAL TARGET/,"Challenge page must distinguish pre-withdrawal targets.");
+assert.match(app,/ACTUAL CLOSE AFTER WD/,"Challenge page must label post-withdrawal actual balance.");
 assert.match(app,/function renderGlobalSearchResults/,"Global search required");
 assert.match(app,/function resultModal/,"Signal result flow required");
 assert.match(app,/startingBalanceForm/,"Admin starting balance editor required");

@@ -98,4 +98,4 @@ $function$;
 
 -- Totals: 31 dates; 28 active days; 3 rest days; 9 planned withdrawals = $226.
 -- Day 12 is intentionally not normalized to another target range.
--- Day 31 withdrawal is $82; remaining $30 is only a conditional result if its actual close is $112.
+-- Day 31's $98-$112 target is pre-withdrawal. After the $82 withdrawal, the remaining actual account close is $16-$30; at the $112 target it is $30.
