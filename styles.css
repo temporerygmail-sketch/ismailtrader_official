@@ -54,3 +54,18 @@ button,.btn{border:1px solid var(--line2);background:linear-gradient(135deg,rgba
 .dashboard-day-results .metric{min-width:0}
 @media(max-width:760px){.dashboard-snapshots{grid-template-columns:1fr}.signal-snapshot:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.signal-snapshot,.signal-snapshot:hover{transition:none;transform:none}}
+
+@page{margin:12mm}
+@media print{
+  body{background:#fff!important;color:#161616!important}
+  .ambient,.grid-noise,.sidebar,.topbar,.mobile-nav,.mobile-menu,.toast-stack,
+  .report-actions,.side-footer,.page-head .inline-actions{display:none!important}
+  .app-shell{display:block!important;min-height:auto!important;max-width:none!important}
+  .main{padding:0!important;margin:0!important}
+  .page{padding:0!important}
+  .panel,.metric{background:#fff!important;color:#161616!important;box-shadow:none!important;backdrop-filter:none!important;border:1px solid #d7d7d7!important;break-inside:avoid}
+  .panel-sub,.hint,.mono,.page-head p{color:#444!important}
+  .data-table{color:#161616!important}
+  .alert{color:#333!important;background:#fff!important;border:1px solid #ddd!important}
+  .chart-wrap,.signal-snapshot{break-inside:avoid}
+}
