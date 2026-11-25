@@ -27,7 +27,7 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 - Quetex Updates: admin publishes; members read.
 - Quetex Official Signals: admin publishes and records outcomes; members read.
 - Market Checking · Demo Signals: admin publishes; members read.
-- Discussion Group: signed-in members and admin can post supported text/media.
+- Discussion Group with text/media, recorded voice notes and eight built-in graphic stickers: signed-in members and admin can post supported text/media.
 - Private inbox: admin ↔ individual member only.
 - Online directory: admin only.
 
