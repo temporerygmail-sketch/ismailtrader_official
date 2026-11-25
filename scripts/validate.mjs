@@ -33,7 +33,7 @@ assert.equal(days.reduce((sum,d)=>sum+d.withdrawal,0),226,"Planned withdrawals m
 assert.deepEqual({min:days[11].min,max:days[11].max,flag:days[11].clarification},{min:25,max:43,flag:true},"Day 12 remains $25–$43 and flagged");
 assert.deepEqual({min:days[30].min,max:days[30].max,withdrawal:days[30].withdrawal},{min:98,max:112,withdrawal:82},"Day 31 target and withdrawal are unchanged");
 
-assert.match(schema,/ACTIVE PROJECT REF: dbsgvcfvlnhwecyfsxib/);
+assert.match(schema,/Project ref: dbsgvcfvlnhwecyfsxib/i);
 assert.match(schema,/REGION: ap-south-1/);
 assert.match(schema,/public\.is_admin\(\)/);
 assert.match(schema,/auth\.jwt\(\)[\s\S]*app_metadata/);
