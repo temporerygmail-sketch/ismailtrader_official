@@ -7,13 +7,13 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 - App: https://temporerygmail-sketch.github.io/ismailtrader_official/
 - GitHub: https://github.com/temporerygmail-sketch/ismailtrader_official
 - Supabase project: `nexoventia-trading-hub`
-- Supabase project ref: `dbsgvcfvlnhwecyfsxib`
-- Region: `ap-south-1` (Mumbai)
-- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
+- Supabase project ref: `qxqdicbhsnrjibwgypyi`
+- Region: `ap-southeast-2` (Sydney)
+- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
 
 ## Modules
 
-- Main Dashboard: actual account balance, planned targets, withdrawals, signal performance, Today/Weekly/All summaries, registered account count, profit/loss/break-even days and next-session countdown.
+- Main Dashboard: actual account balance, planned targets, withdrawals, signal performance, Today/Weekly/15 days/All summaries, registered account count, profit/loss/break-even days and next-session countdown.
 - Challenge Plan: all 31 dates in December 2026; 28 active days and rest days on December 14, 21 and 28.
 - Notes: shared official signal archive, before/after evidence, pair, timeframe, direction, demo amount, expiry and Win/Loss/Refund result.
 - Transactions: shared withdrawal history and receipt images.
