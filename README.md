@@ -6,14 +6,13 @@ NEXOVENTIA is a responsive, installable Progressive Web App for a shared Decembe
 
 - App: https://temporerygmail-sketch.github.io/ismailtrader_official/
 - GitHub: https://github.com/temporerygmail-sketch/ismailtrader_official
-- Supabase project: `nexoventia-trading-hub`
-- Supabase project ref: `dbsgvcfvlnhwecyfsxib`
-- Region: `ap-south-1` (Mumbai)
-- API URL: `https://dbsgvcfvlnhwecyfsxib.supabase.co`
+- Supabase project ref: `qxqdicbhsnrjibwgypyi`
+- Region: `ap-southeast-2` (Sydney)
+- API URL: `https://qxqdicbhsnrjibwgypyi.supabase.co`
 
 ## Modules
 
-- Main Dashboard: actual account balance, planned targets, withdrawals, signal performance, Today/Weekly/15 days/All summaries, registered account count, profit/loss/break-even days and next-session countdown.
+- Main Dashboard: actual account balance, planned targets, withdrawals, signal performance, fixed Today/This week/15 days/All time signal snapshots, registered account count, profit/loss/break-even days and next-session countdown.
 - Challenge Plan: all 31 dates in December 2026; 28 active days and rest days on December 14, 21 and 28.
 - Notes: shared official signal archive, before/after evidence, pair, timeframe, direction, demo amount, expiry and Win/Loss/Refund result.
 - Transactions: shared withdrawal history and receipt images.
@@ -53,14 +52,13 @@ Permissions are enforced in Supabase Row Level Security and database grants, not
 
 ## Owner setup
 
-Read [SETUP.md](./SETUP.md) before inviting users. You must create the first account and promote that account to admin using the documented SQL in Supabase. Google OAuth and reliable SMTP delivery require owner-side provider configuration.
+Read [SETUP.md](./SETUP.md) before inviting users. Configure the GitHub Pages redirect URL in Supabase Auth, create the first email/password account, confirm its email, and promote that account to admin using the documented SQL.
 
 ## Important limitations
 
 - This is a manual record-keeping and educational demo-signal workspace. It does not connect to Quotex, execute orders, fetch broker balances, verify broker outcomes independently or promise returns.
 - Signal outcomes are entered by the admin and are not independently verified market results.
-- Google sign-in works only after a Google OAuth Client ID and Client Secret are configured in Supabase.
-- Supabase's default email sender is suitable for limited testing; dependable email confirmation and password reset need verified SMTP.
+- Email confirmation and password reset require the correct Auth redirect URL; dependable email delivery needs verified SMTP.
 - In-app/realtime and browser notifications work while the browser/app is available. Fully closed-app push delivery needs a push provider and VAPID credentials.
 - Android users can install the PWA from Chrome. This repository does not contain a signed native Android APK.
 - GitHub Pages and Supabase free tiers have quotas and service limits; they are not unlimited.
